@@ -1,0 +1,6 @@
+---
+# tasks file for follower
+- shell: |
+    kubectl create -f {{ playbook_dir }}/files/manifests/{{ item }}.yaml
+  with_items:
+  - dapFollowerManifest

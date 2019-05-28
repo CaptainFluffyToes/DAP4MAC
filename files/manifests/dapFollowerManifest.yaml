@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dap-access-node
+  namespace: dap
+  labels:
+    app: cyberark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: access
+  template:
+    metadata:
+      labels:
+        role: access
+    spec:
+      volumes:
+      - name: followerseed
+        configMap:
+          name: followerseed
+      containers:
+      - name: node
+        imagePullPolicy: Never
+        image: conjur-appliance:5.3.1
+        ports:
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 5432
+            protocol: TCP
+          - containerPort: 1999
+            protocol: TCP
+        volumeMounts:
+          - mountPath: /follwerseed
+            name: followerseed
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          timeoutSeconds: 1
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+            
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: access
+  namespace: dap
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    role: access
+  type: ClusterIP

@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup
+  namespace: dap
+data:
+  backup.tar: ''
+  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dap-source-node
+  namespace: dap
+  labels:
+    app: cyberark
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      role: source
+  template:
+    metadata:
+      labels:
+        role: source
+    spec:
+      volumes:
+      - name: backup
+        configMap:
+          name: backup
+      containers:
+      - name: node
+        imagePullPolicy: Never
+        image: conjur-appliance:5.3.1
+        ports:
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 5432
+            protocol: TCP
+          - containerPort: 1999
+            protocol: TCP
+        volumeMounts:
+          - mountPath: /backup
+            name: backup
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: source
+  namespace: dap
+spec:
+  ports:
+  - name: https
+    nodePort: 32525
+    port: 443
+    targetPort: 443
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+  selector:
+    role: source
+  type: NodePort

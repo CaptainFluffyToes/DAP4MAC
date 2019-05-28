@@ -1,0 +1,88 @@
+---
+- k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
+  with_items:
+  - dapNamespaceManifest
+  - dapMasterManifest
+
+- k8s_facts:
+    kind: pod
+    namespace: dap
+  register: dappod
+
+- set_fact:
+    masterPodName: "{{ dappod.resources[0].metadata.name }}"
+    standbyPodName: "{{ dappod.resources[1].metadata.name }}"
+
+- shell: |
+    kubectl exec -n dap {{ masterPodName }} -i -- evoke configure master -h {{ dapMasterService }} -p {{ dapAdminPass }} {{ dapAccount }}
+
+- name: Wait for health page to report OK
+  uri:
+    url: "https://{{ demoMachineAddress }}:{{ dapPort }}/health"
+    return_content: yes
+    body_format: json
+    validate_certs: no
+    method: GET
+  register: results
+  until: results.conjur_health == 'OK'
+  retries: 5
+  delay: 2
+
+- name: Get API token
+  uri:
+    url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/login
+    return_content: yes
+    method: GET
+    status_code: 200
+    url_password: "{{ dapAdminPass }}"
+    url_username: "{{ dapAdmin }}"
+    force_basic_auth: yes
+    validate_certs: no
+  register: dapAPIKey
+
+- name: Get Authentication token
+  uri:
+    url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
+    return_content: yes
+    method: POST
+    status_code: 200
+    body: "{{ dapAPIKey.content }}"
+    validate_certs: no
+  register: dapToken
+
+- name: Generate dap JWT
+  set_fact:
+    dapTokenFormatted: "{{ dapToken.content | b64encode | replace('\r\n', '') }}"
+  no_log: yes
+
+- name: Load root policy
+  uri:
+    url: https://{{ demoMachineAddress }}:{{ dapPort }}/policies/{{ dapAccount }}/policy/{{ item }}
+    status_code: 201
+    return_content: yes
+    method: PUT
+    headers:
+      Authorization: Token token="{{ dapTokenFormatted }}"
+    validate_certs: no
+    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/{{ item }}.yml') }}"
+  register: status
+  with_items:
+    - root
+    - jenkins
+    - tomcat
+    - webapp
+    - ansible
+    - secrets
+
+- shell: |
+    kubectl exec -n dap {{ dappod.stdout }} -i -- evoke ca issue {{ dapFollowerService }}
+
+- shell: |
+    kubectl exec -n dap {{ dappod.stdout }} -i -- evoke seed follower {{ dapFollowerService }}
+  register: seed
+
+- shell: |
+    kubectl create configmap seed --from-file {{ seed.stdout }}
+  register: output
