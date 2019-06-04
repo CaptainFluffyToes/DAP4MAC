@@ -17,6 +17,7 @@
 
 - shell: |
     kubectl exec -n dap {{ masterPodName }} -i -- evoke configure master -h {{ dapMasterService }} -p {{ dapAdminPass }} {{ dapAccount }}
+  ignore_errors: yes
 
 - name: Wait for health page to report OK
   uri:
@@ -26,16 +27,20 @@
     validate_certs: no
     method: GET
   register: results
-  until: results.conjur_health == 'OK'
-  retries: 5
-  delay: 2
+  # until: results.conjur_health == "OK"
+  # retries: 5
+  # delay: 2
+
+- debug:
+    msg: "{{ results.json.ok }}"
+  
+- pause:
 
 - name: Get API token
   uri:
     url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/login
     return_content: yes
     method: GET
-    status_code: 200
     url_password: "{{ dapAdminPass }}"
     url_username: "{{ dapAdmin }}"
     force_basic_auth: yes
@@ -47,7 +52,6 @@
     url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
     return_content: yes
     method: POST
-    status_code: 200
     body: "{{ dapAPIKey.content }}"
     validate_certs: no
   register: dapToken

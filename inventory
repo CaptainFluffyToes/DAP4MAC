@@ -1,2 +1,2 @@
 [demo_machine]
-default ansible_connection=local
+localhost ansible_connection=local

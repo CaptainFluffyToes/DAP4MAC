@@ -1,2 +1,8 @@
 ---
 # tasks file for ingress
+- k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
+  with_items:
+  - nginxIngressKustomization
+  - nginxIngressManifest

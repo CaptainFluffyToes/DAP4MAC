@@ -22,7 +22,7 @@ spec:
           name: followerseed
       containers:
       - name: node
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         image: conjur-appliance:5.3.1
         ports:
           - containerPort: 443
