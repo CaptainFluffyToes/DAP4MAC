@@ -29,10 +29,13 @@
     private: no
   
   tasks:
-    - include_tasks: dap.yml
-      when: mode == 'new'
+    # - include_tasks: dap.yml
+    #   when: mode == 'new'
     
-    - include_tasks: nginxIngress.yml
+    # - include_tasks: nginxIngress.yml
+    #   when: mode == 'new'
+    
+    - include_tasks: k8sDashboard.yml
       when: mode == 'new'
 
     - k8s:
@@ -42,6 +45,13 @@
       - dapNamespaceManifest
       - nginxIngressKustomization
       when: mode == 'delete'
+      ignore_errors: yes
+
+    - shell: |
+        kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
+        kubectl delete secret generic kubernetes-dashboard-certs kubernetes-dashboard-key-holder -n kube-system
+      when: mode == 'delete'
+      ignore_errors: yes
   
   vars:
     dapAdmin: 'admin'
