@@ -1,0 +1,94 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: conjur-cluster
+  namespace: dap
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: conjur-authenticator
+rules:
+- apiGroups: [""]
+  resources: ["pods", "serviceaccounts"]
+  verbs: ["get", "list"]
+- apiGroups: ["extensions"]
+  resources: [ "deployments", "replicasets"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: [ "deployments", "statefulsets", "replicasets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create", "get"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: conjur-authenticator
+subjects:
+- kind: ServiceAccount
+  name: conjur-cluster
+  namespace: dap
+roleRef:
+  kind: ClusterRole
+  name: conjur-authenticator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dap-access-node
+  namespace: dap
+  labels:
+    app: cyberark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: access
+  template:
+    metadata:
+      labels:
+        role: access
+    spec:
+      containers:
+      - name: node
+        imagePullPolicy: IfNotPresent
+        image: conjur-appliance:5.3.1
+        env:
+          - name: CONJUR_AUTHENTICATORS
+            value: "authn-k8s/okd-follower"
+        ports:
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 5432
+            protocol: TCP
+          - containerPort: 1999
+            protocol: TCP
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+            
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: access
+  namespace: dap
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    role: access
+  type: ClusterIP

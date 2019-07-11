@@ -1,0 +1,19 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: weavescope
+  namespace: weave
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - host: k8scluster.local
+    http:
+      paths:
+      - path: /weave(/|$)(.*)
+        backend:
+          serviceName: weave-scope-app
+          servicePort: 80

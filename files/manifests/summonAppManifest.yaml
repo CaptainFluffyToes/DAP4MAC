@@ -1,0 +1,107 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: summon-app
+  labels:
+    vendor: cyberark
+    app: summon
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: application-conjur-authenticator-role-binding-dap
+  namespace: summon-app
+subjects:
+- kind: ServiceAccount
+  name: conjur-cluster
+  namespace: dap
+roleRef:
+  name: conjur-authenticator
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: summon-app-service-account
+  namespace: summon-app
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summon-app
+  namespace: summon-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: summon-app
+  template:
+    metadata:
+      labels:
+        app: summon-app
+    spec:
+      serviceAccountName: summon-app-service-account
+      containers:
+      - name: authenticator
+        image: cyberark/conjur-authn-k8s-client
+        imagePullPolicy: Always
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/okd-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_AUTHN_LOGIN
+            value: host/conjur/authn-k8s/okd-follower/apps/summon-app/*/*
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      - name: summon-app
+        image: nginx
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 80
+            protocol: TCP
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+            readOnly: true      
+      volumes:
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory

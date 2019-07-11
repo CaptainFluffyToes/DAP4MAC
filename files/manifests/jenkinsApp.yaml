@@ -1,0 +1,70 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: master
+  namespace: jenkins
+  labels:
+    app: ci
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: app1
+  template:
+    metadata:
+      labels:
+        role: app1
+    spec:
+      containers:
+      - name: frontend
+        imagePullPolicy: IfNotPresent
+        image: jenkins
+        ports:
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 80
+            protocol: TCP
+           
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-page
+  namespace: jenkins
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    role: app1
+  type: ClusterIP
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: jenkins
+  namespace: jenkins
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: k8scluster.local
+    http:
+      paths:
+      - path: /jenkins
+        backend:
+          serviceName: admin-page
+          servicePort: 80
