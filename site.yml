@@ -21,6 +21,12 @@
       with_items:
       - { url: 'https://hub.docker.com' }
       - { url: 'https://github.com' }
+    - name: install PIP modules
+      pip:
+        name: "{{ item }}"
+      with_items:
+        - kubernetes
+        - pyYAML
  
   vars_prompt:
   - name: "mode"
