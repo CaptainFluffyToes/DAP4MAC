@@ -29,29 +29,35 @@
     private: no
   
   tasks:
-    - include_tasks: nginxIngress.yml
-      when: mode == 'new'
-
-    - include_tasks: k8sDashboard.yml
-      when: mode == 'new'
-
-    - include_tasks: dap.yml
+    - name: Install k8s dashboard and nginx controller
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
+      with_items:
+        - dashboardManifest
+        - nginxIngressManifest
+        - dashboardIngressManifest
+        - weaveManifest
+        - weaveIngressManifest
+        - dapSourceManifest
+        - dapAccessManifest
+        - jenkinsManifest
       when: mode == 'new'
     
-    - k8s:
+    - name: Remove Dashboard and nginx controller
+      k8s:
         state: absent
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
       with_items:
-      - dapNamespaceManifest
-      - nginxIngressKustomization
+      - dashboardManifest
+      - nginxingressManifest
+      - dashboardIngressManifest
+      - weaveManifest
+      - weaveIngressManifest
+      - dapSourceManifest.yaml
+      - dapAccessManifest
+      - jenkinsManifest
       when: mode == 'delete'
-      ignore_errors: yes
-
-    - shell: |
-        kubectl delete -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
-        kubectl delete secret generic kubernetes-dashboard-certs kubernetes-dashboard-key-holder -n kube-system
-      when: mode == 'delete'
-      ignore_errors: yes
   
   vars:
     dapAdmin: 'admin'

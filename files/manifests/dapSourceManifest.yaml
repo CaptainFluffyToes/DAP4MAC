@@ -41,7 +41,7 @@ spec:
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
-        image: registry.tld/conjur-appliance:10.10
+        image: captainfluffytoes/dap:10.10
         ports:
           - containerPort: 443
             protocol: TCP

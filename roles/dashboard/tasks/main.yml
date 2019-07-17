@@ -1,8 +1,0 @@
----
-# tasks file for dashboard
-
-- shell: |
-    kubectl create secret generic kubernetes-dashboard-certs --from-file={{ playbook_dir }}/files -n kube-system
-
-- shell:
-    kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
