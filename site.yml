@@ -59,7 +59,7 @@
       - dashboardIngressManifest
       - weaveManifest
       - weaveIngressManifest
-      - dapSourceManifest.yaml
+      - dapSourceManifest
       - dapAccessManifest
       - jenkinsManifest
       when: mode == 'delete'

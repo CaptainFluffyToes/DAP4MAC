@@ -59,7 +59,7 @@ spec:
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
-        image: conjur-appliance:5.3.1
+        image: captainfluffytoes/dap:10.10
         env:
           - name: CONJUR_AUTHENTICATORS
             value: "authn-k8s/okd-follower"
