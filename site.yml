@@ -23,10 +23,9 @@
       - { url: 'https://github.com' }
     - name: install PIP modules
       pip:
-        name: "{{ item }}"
-      with_items:
-        - kubernetes
-        - pyYAML
+        name:
+          - pyYAML
+          - kubernetes
  
   vars_prompt:
   - name: "mode"
