@@ -75,7 +75,7 @@
     headers:
       Authorization: Token token="{{ dapTokenFormatted }}"
     validate_certs: no
-    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/root.yml') }}"
+    body: "{{lookup('file', '{{ role_path }}/files/policy/root.yml') }}"
 
 - name: Load Kubernetes policy
   uri:
@@ -86,25 +86,4 @@
     headers:
       Authorization: Token token="{{ dapTokenFormatted }}"
     validate_certs: no
-    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/authn-k8s.yml') }}"
-
-- name: Create cert for Follower
-  shell: |
-    kubectl exec -n dap {{ sourcePodName }} -i -- evoke ca issue --force {{ dapAccessService }}
-
-- name: Generate Seed
-  shell: |
-    kubectl exec -n dap {{ sourcePodName }} -i -- evoke seed follower {{ dapAccessService }}
-  register: seed
-
-- name: save seed file
-  local_action: copy content={{ seed.stdout}} dest={{ role_path}}/files/seed.tar
-
-- name: replace seed file config map
-  shell: |
-    kubectl -n dap create configmap seed --from-file {{ role_path}}/files/seed.tar -o yaml --dry-run | kubectl replace -f -
-
-- name: Delete seed.tar file
-  file:
-    state: absent
-    path: "{{ role_path}}/files/seed.tar"
+    body: "{{lookup('file', '{{ role_path }}/files/policy/authn-k8s.yml') }}"
