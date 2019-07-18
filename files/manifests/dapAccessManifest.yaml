@@ -39,6 +39,15 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seed
+  namespace: dap
+data:
+  backup.tar: ''
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,13 +65,17 @@ spec:
       labels:
         role: access
     spec:
+      volumes:
+      - name: seed
+        configMap:
+          name: seed
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
         image: captainfluffytoes/dap:10.10
         env:
           - name: CONJUR_AUTHENTICATORS
-            value: "authn-k8s/okd-follower"
+            value: "authn-k8s/okd-follower,authn-k8s/k8s-follower"
         ports:
           - containerPort: 443
             protocol: TCP
@@ -70,6 +83,9 @@ spec:
             protocol: TCP
           - containerPort: 1999
             protocol: TCP
+        volumeMounts:
+          - mountPath: /seed
+            name: seed
         resources:
           requests:
             memory: "1Gi"

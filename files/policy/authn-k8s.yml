@@ -1,0 +1,90 @@
+- !policy
+  id: k8s-follower
+  owner: !group /admins
+  body:
+  - !webservice
+  
+  - !layer
+  
+  - !variable kubernetes/service-account-token
+  
+  - !variable kubernetes/ca-cert
+  
+  - !variable kubernetes/api-url
+  
+  - !variable ca/key
+  
+  - !variable ca/cert
+
+  - !policy
+    id: apps
+    owner: !group /admins
+    body:
+    - !layer
+
+    - &hosts
+      - !host
+        id: dap/service_account/conjur-cluster
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+          
+      - !host
+        id: summon-app/service_account/summon-app-service-account
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+    - !grant
+      role: !layer
+      members: *hosts
+      
+  - !permit
+    resource: !webservice
+    privilege: [ read, authenticate ]
+    role: !layer apps
+
+---
+- !policy
+  id: okd-follower
+  owner: !group /admins
+  body:
+  - !webservice
+  
+  - !layer
+  
+  - !variable kubernetes/service-account-token
+  
+  - !variable kubernetes/ca-cert
+  
+  - !variable kubernetes/api-url
+  
+  - !variable ca/key
+  
+  - !variable ca/cert
+
+  - !policy
+    id: apps
+    owner: !group /admins
+    body:
+    - !layer
+
+    - &hosts
+      - !host
+        id: dap/service_account/conjur-cluster
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+          
+      - !host
+        id: summon-app/service_account/summon-app-service-account
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+    - !grant
+      role: !layer
+      members: *hosts
+      
+  - !permit
+    resource: !webservice
+    privilege: [ read, authenticate ]
+    role: !layer apps

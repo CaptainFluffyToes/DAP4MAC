@@ -1,11 +1,11 @@
 ---
 - hosts: demo_machine
   pre_tasks:
-    - name: Verify Ansible is greater than 2.5
+    - name: Verify Ansible is greater than 2.8
       assert:
-        that: "ansible_version.full is version_compare('2.6', '>=')"
+        that: "ansible_version.full is version_compare('2.8', '>=')"
         msg: >
-          " You must update Ansible to at least 2.6."
+          " You must update Ansible to at least 2.8."
     - name: Check for websites
       uri:
         url: "{{ item.url }}"
@@ -26,6 +26,8 @@
         name:
           - pyYAML
           - kubernetes
+          - openshift
+        extra_args: --user
  
   vars_prompt:
   - name: "mode"
@@ -34,7 +36,7 @@
     private: no
   
   tasks:
-    - name: Install k8s dashboard and nginx controller
+    - name: Load Manifests
       k8s:
         state: present
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
@@ -49,7 +51,17 @@
         - jenkinsManifest
       when: mode == 'new'
     
-    - name: Remove Dashboard and nginx controller
+    - name: Configure Source DAP
+      include_role:
+        name: master
+      when: mode == 'new'
+
+    - name: Configure Access DAP
+      include_role:
+        name: follower
+      when: mode == 'new'
+    
+    - name: Remove Cluster Items
       k8s:
         state: absent
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
@@ -65,12 +77,13 @@
       when: mode == 'delete'
   
   vars:
+    clusterIngressRoute: 'k8scluster.local'
     dapAdmin: 'admin'
     dapAdminPass: 'Cyberark1'
     dapAccount: 'cyberark'
-    dapPort: '32525'
-    dapMasterService: 'source.dap.svc.cluster.local'
-    dapFollowerService: 'access.dap.svc.cluster.local'
+    dapSourceService: 'source.dap.svc.cluster.local'
+    dapAccessService: 'access.dap.svc.cluster.local'
     dapFollowerReplicaCount: 1
     dapMasterContainerName: 'node'
+    dapIngressRoute: dap.k8scluster.local
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"

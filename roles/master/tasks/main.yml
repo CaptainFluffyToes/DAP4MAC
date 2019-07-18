@@ -1,44 +1,49 @@
 ---
-- k8s:
-    state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
-  with_items:
-  - dapNamespaceManifest
-  - dapMasterManifest
-
-- k8s_facts:
+- name: Get POD information for DAP instances
+  k8s_facts:
     kind: pod
     namespace: dap
+    label_selectors:
+      - role = source
   register: dappod
+  until: dappod.resources[0].status.containerStatuses[0].ready == true
+  retries: 5
+  delay: 2
 
-- set_fact:
-    masterPodName: "{{ dappod.resources[0].metadata.name }}"
-    standbyPodName: "{{ dappod.resources[1].metadata.name }}"
+- name: Configure Variable with pod name
+  set_fact:
+    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
 
-- shell: |
-    kubectl exec -n dap {{ masterPodName }} -i -- evoke configure master -h {{ dapMasterService }} -p {{ dapAdminPass }} {{ dapAccount }}
-  ignore_errors: yes
+- name: Check to see if DAP is running.
+  uri:
+    url: "https://{{dapIngressRoute}}/health"
+    return_content: yes
+    body_format: json
+    validate_certs: no
+    method: GET
+    status_code: 200, 404, -1
+  register: dapSourceConfig
+  
+- name: Configure DAP 
+  shell: |
+    kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
+  when: dapSourceConfig.status == -1
 
 - name: Wait for health page to report OK
   uri:
-    url: "https://{{ demoMachineAddress }}:{{ dapPort }}/health"
+    url: "https://{{dapIngressRoute}}/health"
     return_content: yes
     body_format: json
     validate_certs: no
     method: GET
   register: results
-  # until: results.conjur_health == "OK"
-  # retries: 5
-  # delay: 2
-
-- debug:
-    msg: "{{ results.json.ok }}"
-  
-- pause:
+  until: results.conjur_health == "OK"
+  retries: 5
+  delay: 2
 
 - name: Get API token
   uri:
-    url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/login
+    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/login
     return_content: yes
     method: GET
     url_password: "{{ dapAdminPass }}"
@@ -49,7 +54,7 @@
 
 - name: Get Authentication token
   uri:
-    url: https://{{ demoMachineAddress }}:{{ dapPort }}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
+    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
     return_content: yes
     method: POST
     body: "{{ dapAPIKey.content }}"
@@ -63,30 +68,43 @@
 
 - name: Load root policy
   uri:
-    url: https://{{ demoMachineAddress }}:{{ dapPort }}/policies/{{ dapAccount }}/policy/{{ item }}
+    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/root
     status_code: 201
     return_content: yes
     method: PUT
     headers:
       Authorization: Token token="{{ dapTokenFormatted }}"
     validate_certs: no
-    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/{{ item }}.yml') }}"
-  register: status
-  with_items:
-    - root
-    - jenkins
-    - tomcat
-    - webapp
-    - ansible
-    - secrets
+    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/root.yml') }}"
 
-- shell: |
-    kubectl exec -n dap {{ dappod.stdout }} -i -- evoke ca issue {{ dapFollowerService }}
+- name: Load Kubernetes policy
+  uri:
+    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/conjur/authn-k8s
+    status_code: 201
+    return_content: yes
+    method: PUT
+    headers:
+      Authorization: Token token="{{ dapTokenFormatted }}"
+    validate_certs: no
+    body: "{{lookup('file', '{{ playbook_dir }}/files/policy/authn-k8s.yml') }}"
 
-- shell: |
-    kubectl exec -n dap {{ dappod.stdout }} -i -- evoke seed follower {{ dapFollowerService }}
+- name: Create cert for Follower
+  shell: |
+    kubectl exec -n dap {{ sourcePodName }} -i -- evoke ca issue --force {{ dapAccessService }}
+
+- name: Generate Seed
+  shell: |
+    kubectl exec -n dap {{ sourcePodName }} -i -- evoke seed follower {{ dapAccessService }}
   register: seed
 
-- shell: |
-    kubectl create configmap seed --from-file {{ seed.stdout }}
-  register: output
+- name: save seed file
+  local_action: copy content={{ seed.stdout}} dest={{ role_path}}/files/seed.tar
+
+- name: replace seed file config map
+  shell: |
+    kubectl -n dap create configmap seed --from-file {{ role_path}}/files/seed.tar -o yaml --dry-run | kubectl replace -f -
+
+- name: Delete seed.tar file
+  file:
+    state: absent
+    path: "{{ role_path}}/files/seed.tar"
