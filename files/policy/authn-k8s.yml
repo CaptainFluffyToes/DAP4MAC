@@ -43,7 +43,6 @@
     privilege: [ read, authenticate ]
     role: !layer apps
 
----
 - !policy
   id: okd-follower
   owner: !group /admins
@@ -68,7 +67,7 @@
     body:
     - !layer
 
-    - &hosts
+    - &hostsokd
       - !host
         id: dap/service_account/conjur-cluster
         annotations:
@@ -82,7 +81,7 @@
           openshift: "true"
     - !grant
       role: !layer
-      members: *hosts
+      members: *hostsokd
       
   - !permit
     resource: !webservice
