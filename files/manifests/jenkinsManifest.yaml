@@ -5,6 +5,22 @@ metadata:
   name: jenkins
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-app-ssl
+  namespace: jenkins
+data:
+  ssl-certificate: ''
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-account
+  namespace: jenkins
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,8 +38,9 @@ spec:
       labels:
         role: app1
     spec:
+      serviceAccountName: jenkins-account
       containers:
-      - name: frontend
+      - name: ci
         imagePullPolicy: IfNotPresent
         image: jenkins
         ports:
@@ -31,6 +48,58 @@ spec:
             protocol: TCP
           - containerPort: 80
             protocol: TCP
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                key: k8s-app-ssl
+                name: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+            readOnly: true
+      - name: authenticator
+        image: cyberark/conjur-authn-k8s-client
+        imagePullPolicy: Always
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/okd-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_AUTHN_LOGIN
+            value: host/conjur/authn-k8s/okd-follower/apps/summon-app/*/*
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      volumes:
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory
            
 ---
 apiVersion: v1
@@ -61,10 +130,10 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: k8scluster.local
+  - host: jenkins.k8scluster.local
     http:
       paths:
-      - path: /jenkins
+      - path: /
         backend:
           serviceName: admin-page
           servicePort: 80
