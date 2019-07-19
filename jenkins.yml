@@ -1,0 +1,32 @@
+---
+- name: Get POD information for DAP instances
+  k8s_facts:
+    kind: pod
+    namespace: dap
+    label_selectors:
+      - role = source
+  register: dappod
+  until: dappod.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
+  delay: 2
+
+- name: Configure Variable with pod name
+  set_fact:
+    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+
+- name: Get SSL cert
+  shell: |
+    kubectl exec -n dap {{ sourcePodName }} -i -- cat /opt/conjur/etc/ssl/{{dapSourceService}}.pem 
+  register: ssl
+
+- name: save SSL cert
+  local_action: copy content={{ ssl.stdout}} dest={{ playbook_dir }}/files/ssl.pem
+
+- name: replace seed file config map
+  shell: |
+    kubectl -n jenkins create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem -o yaml --dry-run | kubectl replace -f -
+
+- name: Delete ssl.pem file
+  file:
+    state: absent
+    path: "{{ playbook_dir }}/files/ssl.pem"
