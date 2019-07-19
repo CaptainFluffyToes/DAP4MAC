@@ -81,7 +81,7 @@
       when: mode == 'new'
       
     - name: Conigure Jenkins
-      include_tasks: app.yml
+      include_tasks: jenkins.yml
       when: mode == 'new'
     
     - name: Remove Cluster Items
