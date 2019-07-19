@@ -23,89 +23,10 @@
     method: GET
     status_code: 200, 404, -1
   register: dapSourceConfig
-  
-- name: Configure DAP 
-  shell: |
-    kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
+
+- name: Configure Source node
+  include_tasks: configureSource.yml
   when: dapSourceConfig.status == -1
 
-- name: Wait for health page to report OK
-  uri:
-    url: "https://{{dapIngressRoute}}/health"
-    return_content: yes
-    body_format: json
-    validate_certs: no
-    method: GET
-  register: results
-  until: results.conjur_health == "OK"
-  retries: 60
-  delay: 2
-
-- name: Get API token
-  uri:
-    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/login
-    return_content: yes
-    method: GET
-    url_password: "{{ dapAdminPass }}"
-    url_username: "{{ dapAdmin }}"
-    force_basic_auth: yes
-    validate_certs: no
-  register: dapAPIKey
-
-- name: Get Authentication token
-  uri:
-    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
-    return_content: yes
-    method: POST
-    body: "{{ dapAPIKey.content }}"
-    validate_certs: no
-  register: dapToken
-
-- name: Generate dap JWT
-  set_fact:
-    dapTokenFormatted: "{{ dapToken.content | b64encode | replace('\r\n', '') }}"
-  no_log: yes
-
-- name: Load root policy
-  uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/root
-    status_code: 201
-    return_content: yes
-    method: PUT
-    headers:
-      Authorization: Token token="{{ dapTokenFormatted }}"
-    validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/root.yml') }}"
-
-- name: Load Kubernetes policy
-  uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/conjur/authn-k8s
-    status_code: 201
-    return_content: yes
-    method: PUT
-    headers:
-      Authorization: Token token="{{ dapTokenFormatted }}"
-    validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/authn-k8s.yml') }}"
-    
-- name: Load Jenkins policy
-  uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/jenkins
-    status_code: 201
-    return_content: yes
-    method: PUT
-    headers:
-      Authorization: Token token="{{ dapTokenFormatted }}"
-    validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/jenkins.yml') }}"
-
-- name: Load Resources policy
-  uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/resources
-    status_code: 201
-    return_content: yes
-    method: PUT
-    headers:
-      Authorization: Token token="{{ dapTokenFormatted }}"
-    validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/resources.yml') }}"
+- name: Load Policies
+  include_tasks: loadPolicy.yml
