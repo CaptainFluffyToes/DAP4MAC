@@ -48,6 +48,11 @@
     default: "new"
     private: no
   
+  - name: "clusterFQDN"
+    prompt: 'Enter k8s cluster FQDN'
+    default: "k8scluster.local"
+    private: no
+  
   tasks:
     - name: Load Manifests
       k8s:
@@ -95,7 +100,6 @@
       when: mode == 'delete'
   
   vars:
-    clusterIngressRoute: 'k8scluster.local'
     dapAdmin: 'admin'
     dapAdminPass: 'Cyberark1'
     dapAccount: 'cyberark'
@@ -103,5 +107,5 @@
     dapAccessService: 'access.dap.svc.cluster.local'
     dapFollowerReplicaCount: 1
     dapMasterContainerName: 'node'
-    dapIngressRoute: dap.k8scluster.local
+    dapIngressRoute: dap.{{clusterFQDN}}
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"
