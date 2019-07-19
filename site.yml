@@ -61,6 +61,10 @@
       include_role:
         name: follower
       when: mode == 'new'
+      
+    - name: Conigure Jenkins
+      include_tasks: app.yml
+      when: mode == 'new'
     
     - name: Remove Cluster Items
       k8s:
