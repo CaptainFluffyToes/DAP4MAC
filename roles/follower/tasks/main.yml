@@ -4,42 +4,6 @@
     kind: pod
     namespace: dap
     label_selectors:
-      - role = source
-  register: dappod
-  until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 5
-  delay: 2
-
-- name: Configure Variable with pod name
-  set_fact:
-    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
-
-- name: Create cert for Follower
-  shell: |
-    kubectl exec -n dap {{ sourcePodName }} -i -- evoke ca issue --force {{ dapAccessService }}
-
-- name: Generate Seed
-  shell: |
-    kubectl exec -n dap {{ sourcePodName }} -i -- evoke seed follower {{ dapAccessService }}
-  register: seed
-
-- name: save seed file
-  local_action: copy content={{ seed.stdout}} dest={{ role_path}}/files/seed.tar
-
-- name: replace seed file config map
-  shell: |
-    kubectl -n dap create configmap seed --from-file {{ role_path}}/files/seed.tar -o yaml --dry-run | kubectl replace -f -
-
-- name: Delete seed.tar file
-  file:
-    state: absent
-    path: "{{ role_path}}/files/seed.tar"
-
-- name: Get POD information for DAP Access instances
-  k8s_facts:
-    kind: pod
-    namespace: dap
-    label_selectors:
       - role = access
   register: dappod
   until: dappod.resources[0].status.containerStatuses[0].ready == true
@@ -50,18 +14,11 @@
   set_fact:
     accessPodName: "{{ dappod.resources[0].metadata.name }}"
 
-- name: Check for seed file contents
+- name: Check that follwer is not already configured
   shell: |
-    kubectl exec -n dap {{ accessPodName }} -i -- ls /seed
-  register: output
-  until: output.stdout == "seed.tar"
-  retries: 60
-  delay: 2
+    kubectl -n dap exec {{ accessPodName }} -i -- evoke role
+  register: follwer_configured
 
-- name: Unpack seed
-  shell: |
-    kubectl exec -n dap {{ accessPodName }} -i -- evoke unpack seed /seed/seed.tar
-
-- name: Configure Access node
-  shell: |
-    kubectl exec -n dap {{ accessPodName }} -i -- evoke configure follower
+- name: Configure follower when DAP instance is not configured
+  include_tasks: configureFollower.yml
+  when: follwer_configured.stdout == 'blank'
