@@ -1,5 +1,0 @@
----
-- include_role:
-    name: master
-
-- include_tasks: follower.yml
