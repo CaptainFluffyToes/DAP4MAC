@@ -7,7 +7,7 @@
       - role = source
   register: dappod
   until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 5
+  retries: 60
   delay: 2
 
 - name: Create cert for Follower
@@ -39,7 +39,7 @@
       - role = access
   register: dappod
   until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 5
+  retries: 60
   delay: 2
 
 - name: Configure Variable with pod name

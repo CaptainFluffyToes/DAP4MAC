@@ -7,7 +7,7 @@
       - role = source
   register: dappod
   until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 5
+  retries: 60
   delay: 2
 
 - name: Configure Variable with pod name
@@ -38,7 +38,7 @@
     method: GET
   register: results
   until: results.conjur_health == "OK"
-  retries: 5
+  retries: 60
   delay: 2
 
 - name: Get API token
