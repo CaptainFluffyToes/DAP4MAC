@@ -6,6 +6,7 @@
         that: "ansible_version.full is version_compare('2.8', '>=')"
         msg: >
           " You must update Ansible to at least 2.8."
+
     - name: Check for websites
       uri:
         url: "{{ item.url }}"
@@ -21,6 +22,7 @@
       with_items:
       - { url: 'https://hub.docker.com' }
       - { url: 'https://github.com' }
+
     - name: install PIP modules
       pip:
         name:
@@ -28,6 +30,17 @@
           - kubernetes
           - openshift
         extra_args: --user
+
+    - name: Check if Kubectl is installed in current shell
+      shell: |
+        which kubectl
+      register: kubectl_is_installed
+      
+    - name: Fail if kubectl not installed
+      assert:
+        that: "kubectl_is_installed.stdout != ''"
+        fail_msg: "kubectl is not found in the current shell. Please install kubectl and connect it to your target cluster."
+        success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
  
   vars_prompt:
   - name: "mode"
