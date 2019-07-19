@@ -49,6 +49,7 @@
         - dapSourceManifest
         - dapAccessManifest
         - jenkinsManifest
+        - dapAccessPermissionsManifest
       when: mode == 'new'
     
     - name: Configure Source DAP
