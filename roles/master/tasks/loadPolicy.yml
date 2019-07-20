@@ -46,17 +46,6 @@
     validate_certs: no
     body: "{{lookup('file', '{{ role_path }}/files/policy/authn-k8s.yml') }}"
     
-- name: Load seed generation policy
-  uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/conjur/seed-generation
-    status_code: 201
-    return_content: yes
-    method: PUT
-    headers:
-      Authorization: Token token="{{ dapTokenFormatted }}"
-    validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/seed-generation.yml') }}"
-
 - name: Load Jenkins policy
   uri:
     url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/jenkins
