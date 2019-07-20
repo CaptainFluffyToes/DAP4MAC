@@ -42,7 +42,7 @@ spec:
       containers:
       - name: ci
         imagePullPolicy: IfNotPresent
-        image: jenkins
+        image: jenkins/jenkins
         ports:
           - containerPort: 443
             protocol: TCP
@@ -81,13 +81,13 @@ spec:
           - name: CONJUR_APPLIANCE_URL
             value: https://access.dap.svc.cluster.local/api
           - name: CONJUR_AUTHN_URL
-            value: https://access.dap.svc.cluster.local/api/authn-k8s/okd-follower
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
           - name: CONJUR_ACCOUNT
             value: cyberark
           - name: CONJUR_VERSION
             value: '5'
           - name: CONJUR_AUTHN_LOGIN
-            value: host/conjur/authn-k8s/okd-follower/apps/summon-app/*/*
+            value: host/conjur/authn-k8s/k8s-follower/apps/jenkins/*/*
           - name: CONJUR_SSL_CERTIFICATE
             valueFrom:
               configMapKeyRef:
