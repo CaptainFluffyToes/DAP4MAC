@@ -59,15 +59,7 @@
         state: present
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
       with_items:
-        - dashboardManifest
-        - nginxIngressManifest
-        - dashboardIngressManifest
-        - weaveManifest
-        - weaveIngressManifest
-        - dapSourceManifest
-        - dapAccessManifest
-        - jenkinsManifest
-        - dapAccessPermissionsManifest
+        - "{{ manifests }}"
       when: mode == 'new'
     
     - name: Configure Source DAP
@@ -89,14 +81,7 @@
         state: absent
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yaml"
       with_items:
-      - dashboardManifest
-      - nginxingressManifest
-      - dashboardIngressManifest
-      - weaveManifest
-      - weaveIngressManifest
-      - dapSourceManifest
-      - dapAccessManifest
-      - jenkinsManifest
+        - "{{ manifests }}"
       when: mode == 'delete'
   
   vars:
@@ -109,3 +94,13 @@
     dapMasterContainerName: 'node'
     dapIngressRoute: dap.{{clusterFQDN}}
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"
+    manifests:
+      - dashboardManifest
+      - nginxingressManifest
+      - dashboardIngressManifest
+      - weaveManifest
+      - weaveIngressManifest
+      - dapSourceManifest
+      - dapAccessManifest
+      - jenkinsManifest
+      - gitlabManifest
