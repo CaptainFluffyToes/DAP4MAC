@@ -137,3 +137,18 @@ spec:
         backend:
           serviceName: admin-page
           servicePort: 80
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: application-conjur-authenticator-role-binding-dap
+  namespace: jenkins
+subjects:
+- kind: ServiceAccount
+  name: conjur-cluster
+  namespace: dap
+roleRef:
+  name: conjur-authenticator
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
