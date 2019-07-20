@@ -1,16 +1,15 @@
 - !policy
   id: k8s-follower
-  owner: !group /admins
   body:
   - !webservice
   
   - !layer
   
-  - !variable kubernetes/service-account-token
+  # - !variable kubernetes/service-account-token
   
-  - !variable kubernetes/ca-cert
+  # - !variable kubernetes/ca-cert
   
-  - !variable kubernetes/api-url
+  # - !variable kubernetes/api-url
   
   - !variable ca/key
   
@@ -22,21 +21,22 @@
     body:
     - !layer
 
-    - &hosts
+    - &authenticated-resources-k8s
       - !host
         id: dap/service_account/conjur-cluster
         annotations:
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
-          
+
       - !host
-        id: summon-app/service_account/summon-app-service-account
+        id: jenkins/*/*
         annotations:
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
+
     - !grant
       role: !layer
-      members: *hosts
+      members: *authenticated-resources-k8s
       
   - !permit
     resource: !webservice
@@ -45,7 +45,6 @@
 
 - !policy
   id: okd-follower
-  owner: !group /admins
   body:
   - !webservice
   
@@ -67,21 +66,16 @@
     body:
     - !layer
 
-    - &hostsokd
+    - &authenticated-resources-okd
       - !host
         id: dap/service_account/conjur-cluster
         annotations:
           kubernetes/authentication-container-name: authenticator
           openshift: "true"
           
-      - !host
-        id: summon-app/service_account/summon-app-service-account
-        annotations:
-          kubernetes/authentication-container-name: authenticator
-          openshift: "true"
     - !grant
       role: !layer
-      members: *hostsokd
+      members: *authenticated-resources-okd
       
   - !permit
     resource: !webservice
