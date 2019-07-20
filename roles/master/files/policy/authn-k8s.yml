@@ -5,12 +5,6 @@
   
   - !layer
   
-  # - !variable kubernetes/service-account-token
-  
-  # - !variable kubernetes/ca-cert
-  
-  # - !variable kubernetes/api-url
-  
   - !variable ca/key
   
   - !variable ca/cert
@@ -49,13 +43,7 @@
   - !webservice
   
   - !layer
-  
-  - !variable kubernetes/service-account-token
-  
-  - !variable kubernetes/ca-cert
-  
-  - !variable kubernetes/api-url
-  
+
   - !variable ca/key
   
   - !variable ca/cert
