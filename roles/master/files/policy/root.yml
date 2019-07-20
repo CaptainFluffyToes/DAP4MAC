@@ -35,6 +35,10 @@
 - !policy
   id: conjur/authn-k8s
   owner: !group /devops
+
+- !policy
+  id: conjur/seed-generation
+  owner: !group /devops
   
 - !policy
   id: jenkins

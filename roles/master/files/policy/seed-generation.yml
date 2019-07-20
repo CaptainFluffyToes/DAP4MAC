@@ -1,0 +1,12 @@
+---
+- !policy
+  id: seed-generation
+  body:
+  - !webservice
+
+  - !layer consumers
+
+  - !permit
+    role: !layer consumers
+    privilege: [ "execute" ]
+    resource: !webservice
