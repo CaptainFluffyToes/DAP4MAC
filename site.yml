@@ -72,8 +72,8 @@
         name: follower
       when: mode == 'new'
       
-    - name: Conigure Jenkins
-      include_tasks: jenkins.yml
+    - name: Conigure SSL Cert configMap
+      include_tasks: sslCertConfigMap.yml
       when: mode == 'new'
 
     - name: Conigure Gitlab
@@ -108,3 +108,7 @@
       - dapAccessManifest
       - jenkinsManifest
       - gitlabManifest
+    appNamespaces:
+      - jenkins
+      - gitlab
+      

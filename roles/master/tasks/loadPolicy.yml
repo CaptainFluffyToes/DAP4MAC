@@ -56,6 +56,17 @@
       Authorization: Token token="{{ dapTokenFormatted }}"
     validate_certs: no
     body: "{{lookup('file', '{{ role_path }}/files/policy/jenkins.yml') }}"
+    
+- name: Load Gitlab policy
+  uri:
+    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/gitlab
+    status_code: 201
+    return_content: yes
+    method: PUT
+    headers:
+      Authorization: Token token="{{ dapTokenFormatted }}"
+    validate_certs: no
+    body: "{{lookup('file', '{{ role_path }}/files/policy/jenkins.yml') }}"
 
 - name: Load Resources policy
   uri:

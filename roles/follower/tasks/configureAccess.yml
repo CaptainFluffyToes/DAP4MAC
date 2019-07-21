@@ -1,5 +1,5 @@
 ---
-- name: Get POD information for DAP instances
+- name: Get POD information for DAP source instance
   k8s_facts:
     kind: pod
     namespace: dap

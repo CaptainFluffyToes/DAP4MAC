@@ -59,5 +59,9 @@
   owner: !group /devops
   
 - !policy
+  id: gitlab
+  owner: !group /devops
+  
+- !policy
   id: resources
   owner: !group /devops

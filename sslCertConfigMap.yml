@@ -24,7 +24,9 @@
 
 - name: replace seed file config map
   shell: |
-    kubectl -n jenkins create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem -o yaml --dry-run | kubectl replace -f -
+    kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem -o yaml --dry-run | kubectl replace -f -
+  with_items:
+    - {{ appNamespaces }}
 
 - name: Delete ssl.pem file
   file:
