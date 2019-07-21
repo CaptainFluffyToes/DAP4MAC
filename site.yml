@@ -88,6 +88,10 @@
       include_tasks: sslCertConfigMap.yml
       when: mode == 'new'
 
+    - name: Configure gogs
+      include_tasks: gogs.yml
+      when: mode == 'new'
+
     - name: Conigure Gitlab
       include_tasks: gitlab.yml
       when: mode == 'new'
@@ -115,9 +119,11 @@
       become: yes
   
   vars:
+    adminPass: 'Cyberark1'
+    account: 'cyberark'
     dapAdmin: 'admin'
-    dapAdminPass: 'Cyberark1'
-    dapAccount: 'cyberark'
+    dapAdminPass: "{{adminPass}}"
+    dapAccount: "{{ account }}"
     dapSourceService: 'source.dap.svc.cluster.local'
     dapAccessService: 'access.dap.svc.cluster.local'
     dapFollowerReplicaCount: 1
@@ -127,6 +133,7 @@
     gitlabIngressRoute: "gitlab.{{clusterFQDN}}"
     dashboardIngressRoute: "dashboard.{{clusterFQDN}}"
     weaveIngressRoute: "weave.{{clusterFQDN}}"
+    gogsIngressRoute: "gogs.{{clusterFQDN}}"
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"
     manifests:
       - dashboardManifest
@@ -149,3 +156,7 @@
       - "{{gitlabIngressRoute}}"
       - "{{dashboardIngressRoute}}"
       - "{{weaveIngressRoute}}"
+      - "{{gogsIngressRoute}}"
+    gogsAdmin: 'eva'
+    gogsAdminPass: "{{adminPass}}"
+    gogsAccount: "{{ account }}"

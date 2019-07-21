@@ -1,0 +1,54 @@
+---
+- name: Check that gogs initial webpage is up.
+  uri:
+    url: "http://{{ gogsIngressRoute }}/install"
+    body_format: json
+    status_code: 200, 404
+    return_content: yes
+    validate_certs: NO
+    method: GET
+  register: gogs_setup
+
+- name: gogs initial configuration
+  uri:
+    url: "http://{{gogsIngressRoute}}/install"
+    method: POST
+    body_format: raw
+    body: "db_type=SQLite3&db_path=data/gogs.db&app_name=Gogs&repo_root_path=/data/git/gogs-repositories&run_user=git&domain=gogs&ssh_port=22&http_port=3000&app_url=http://gogs.k8scluster.local/&log_root_path=/app/gogs/log&smtp_host=&smtp_from=&smtp_user=&smtp_passwd=&disable_gravatar=true&enable_captcha=false&register_confirm=false&admin_name={{gogsAdmin}}&admin_passwd={{gogsAdminPass}}&admin_confirm_passwd={{gogsAdminPass}}&admin_email=eva@cyberark.com"
+    return_content: yes
+    follow_redirects: all
+    status_code: 200,302
+  register: gogs_result
+  when: gogs_setup.status == 200
+
+- name: Create gogs organization
+  uri:
+    url: "http://{{gogsIngressRoute}}/api/v1/admin/users/{{ gogsAdmin }}/orgs"
+    method: POST
+    body_format: json
+    body: {
+      "username": "{{ gogsAccount }}",
+      "full_name": "Cyberark",
+      "description": "Cyberark_Org.",
+      "website": "https://www.cyberark.com",
+      "location": "US"
+      }
+    user: "{{ gogsAdmin }}"
+    password: "{{ gogsAdminPass }}"
+    force_basic_auth: true
+    status_code: [201, 422] # 422 status code is given when the org already exists
+
+- name: Create gogs team
+  uri:
+    url: "http://{{gogsIngressRoute}}/orgs/{{ gogsAccount }}/teams"
+    method: POST
+    body_format: json
+    body: {
+      "name": "apiAccess",
+      "description": "Team_for_API",
+      "permission": "read"
+      }
+    user: "{{ gogsAdmin }}"
+    password: "{{ gogsAdminPass }}"
+    force_basic_auth: true
+    status_code: [201, 422] # 422 status code is given when the team already exists
