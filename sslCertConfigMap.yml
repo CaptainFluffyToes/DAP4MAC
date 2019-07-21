@@ -26,7 +26,7 @@
   shell: |
     kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem -o yaml --dry-run | kubectl replace -f -
   with_items:
-    - {{ appNamespaces }}
+    - "{{ appNamespaces }}"
 
 - name: Delete ssl.pem file
   file:
