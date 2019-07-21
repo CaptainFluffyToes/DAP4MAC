@@ -46,15 +46,7 @@
     - name: Get POD information for DAP instances
       k8s_facts:
         kind: pod
-        namespace: dap
-        label_selectors:
-          - role = source
+        namespace: kube-system
       register: dappod
-      until: dappod.resources[0].status.containerStatuses[0].ready == true
       retries: 60
       delay: 2
-
-    - name: Configure Variable with pod name
-      set_fact:
-        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
-
