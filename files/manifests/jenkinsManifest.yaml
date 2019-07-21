@@ -40,7 +40,7 @@ spec:
     spec:
       serviceAccountName: jenkins-account
       containers:
-      - name: ci
+      - name: jenkins-master
         imagePullPolicy: IfNotPresent
         image: jenkins/jenkins
         ports:
