@@ -144,8 +144,8 @@
       - gitlab
       - gogs
     ingressRoutes:
-      - dapIngressRoute
-      - jenkinsIngressRoute
-      - gitlabIngressRoute
-      - dashboardIngressRoute
-      - weaveIngressRoute
+      - "{{dapIngressRoute}}"
+      - "{{jenkinsIngressRoute}}"
+      - "{{gitlabIngressRoute}}"
+      - "{{dashboardIngressRoute}}"
+      - "{{weaveIngressRoute}}"
