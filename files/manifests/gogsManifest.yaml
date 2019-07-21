@@ -1,0 +1,159 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gogs
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gogs-account
+  namespace: gogs
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-app-ssl
+  namespace: gogs
+data:
+  ssl-certificate: ''
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gogsce
+  namespace: gogs
+  labels:
+    app: gogs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      scm: "yes"
+      ci: "no"
+      app: "gogs"
+  template:
+    metadata:
+      labels:
+        scm: "yes"
+        ci: "no"
+        app: "gogs"
+    spec:
+      serviceAccountName: gogs-account
+      containers:
+      - name: main
+        imagePullPolicy: Always
+        image: gogs/gogs
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        ports:
+          - name: http
+            containerPort: 3000
+          - name: ssh
+            containerPort: 22
+      - name: authenticator
+        image: cyberark/conjur-authn-k8s-client
+        imagePullPolicy: Always
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_AUTHN_LOGIN
+            value: host/conjur/authn-k8s/k8s-follower/apps/gogs/*/*
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      volumes:
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory
+        
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-page
+  namespace: gogs
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+  - name: ssh
+    port: 22
+    targetPort: 22
+  selector:
+    app: gogs
+  type: ClusterIP
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gogs
+  namespace: gogs
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: gogs.k8scluster.local
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: admin-page
+          servicePort: 80
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: application-conjur-authenticator-role-binding-dap
+  namespace: gogs
+subjects:
+- kind: ServiceAccount
+  name: conjur-cluster
+  namespace: dap
+roleRef:
+  name: conjur-authenticator
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
