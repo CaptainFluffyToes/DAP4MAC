@@ -38,23 +38,6 @@
   owner: !group /devops
 
 - !policy
-  id: conjur/seed-generation
-  owner: !group /devops
-  body:
-   - !webservice
-
-   - !layer consumers
-
-   - !permit
-     role: !layer consumers
-     privilege: [ "execute" ]
-     resource: !webservice
-
-- !grant
-  role: !layer conjur/seed-generation/consumers
-  member: !host conjur/authn-k8s/k8s-follower/apps/dap/service_account/conjur-cluster
-  
-- !policy
   id: jenkins
   owner: !group /devops
   

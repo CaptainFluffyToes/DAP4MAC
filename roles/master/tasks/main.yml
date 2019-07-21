@@ -31,9 +31,11 @@
 - name: Load Policies
   include_tasks: loadPolicy.yml
 
-# - name: Initialize Certificate
-#   shell: |
-#     kubectl -n dap exec {{ sourcePodName }} -i -- chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init[“conjur/authn-k8s/{{item}}”]
-#   with_items:
-#     - k8s-follower
-#     - okd-follower
+- name: Initialize Certificate
+  shell: |
+    kubectl -n dap exec {{ sourcePodName }} -i -- chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init[“conjur/authn-k8s/{{cert_item}}”]
+  with_items:
+    - k8s-follower
+    - okd-follower
+  loop_control:
+    loop_var: cert_item

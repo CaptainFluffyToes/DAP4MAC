@@ -26,17 +26,19 @@
 
 - name: Load policies
   uri:
-    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/{{ item }}
+    url: https://{{dapIngressRoute}}/policies/{{ dapAccount }}/policy/{{ policy_item }}
     status_code: 201
     return_content: yes
     method: PUT
     headers:
       Authorization: Token token="{{ dapTokenFormatted }}"
     validate_certs: no
-    body: "{{lookup('file', '{{ role_path }}/files/policy/{{ item }}.yml') }}"
+    body: "{{lookup('file', '{{ role_path }}/files/policy/{{ policy_item }}.yml') }}"
   with_items:
     - root
     - conjur/authn-k8s
     - jenkins
     - gitlab
     - resources
+  loop_control:
+    loop_var: policy_item
