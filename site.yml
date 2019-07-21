@@ -112,7 +112,8 @@
       - dapAccessManifest
       - jenkinsManifest
       - gitlabManifest
+      - gogsManifest
     appNamespaces:
       - jenkins
       - gitlab
-      
+      - gogs
