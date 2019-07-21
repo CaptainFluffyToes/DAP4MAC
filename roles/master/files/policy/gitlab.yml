@@ -1,0 +1,6 @@
+---
+- &gitlab
+  - !variable
+    id: gitlab_user
+  - !variable
+    id: gitlab_pwd
