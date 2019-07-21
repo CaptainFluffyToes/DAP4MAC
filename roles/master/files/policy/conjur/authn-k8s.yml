@@ -32,7 +32,7 @@
         id: gitlab/*/*
         annotations:
           kubernetes/authentication-container-name: authenticator
-          kubernetes: "true
+          kubernetes: "true"
 
     - !grant
       role: !layer
