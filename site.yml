@@ -62,15 +62,13 @@
         - "{{ manifests }}"
       when: mode == 'new'
     
-    - name: Configure Source DAP
+    - name: Configure DAP
       include_role:
-        name: master
+        name: "{{item}}"
       when: mode == 'new'
-
-    - name: Configure Access DAP
-      include_role:
-        name: follower
-      when: mode == 'new'
+      with_items:
+        - master
+        - follower
       
     - name: Conigure SSL Cert configMap
       include_tasks: sslCertConfigMap.yml
