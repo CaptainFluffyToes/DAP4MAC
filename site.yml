@@ -79,6 +79,10 @@
     - name: Conigure Gitlab
       include_tasks: gitlab.yml
       when: mode == 'new'
+
+    - name: Conigure Jenkins
+      include_tasks: jenkins.yml
+      when: mode == 'new'
     
     - name: Remove Cluster Items
       k8s:
