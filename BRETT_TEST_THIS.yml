@@ -48,5 +48,3 @@
         kind: pod
         namespace: kube-system
       register: dappod
-      retries: 60
-      delay: 2
