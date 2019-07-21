@@ -43,6 +43,10 @@
         success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
  
   vars_prompt:
+  - name: "ansible_become_pass"
+    prompt: 'Enter your SUDO password'
+    private: yes
+
   - name: "mode"
     prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
     default: "new"
@@ -54,6 +58,16 @@
     private: no
   
   tasks:
+    - name: Add host entries for webpages
+      lineinfile:
+        path: /etc/hosts
+        line: 127.0.0.1 {{ item }}
+        state: present
+      with_items:
+       - "{{ ingressRoutes }}"
+      when: mode == 'new'
+      become: yes
+
     - name: Load Manifests
       k8s:
         state: present
@@ -89,6 +103,16 @@
       with_items:
         - "{{ manifests }}"
       when: mode == 'delete'
+
+    - name: Remove host entries for webpages
+      lineinfile:
+        path: /etc/hosts
+        line: 127.0.0.1 {{ item }}
+        state: absent
+      with_items:
+       - "{{ ingressRoutes }}"
+      when: mode == 'delete'
+      become: yes
   
   vars:
     dapAdmin: 'admin'
@@ -98,7 +122,11 @@
     dapAccessService: 'access.dap.svc.cluster.local'
     dapFollowerReplicaCount: 1
     dapMasterContainerName: 'node'
-    dapIngressRoute: dap.{{clusterFQDN}}
+    dapIngressRoute: "dap.{{clusterFQDN}}"
+    jenkinsIngressRoute: "jenkins.{{clusterFQDN}}"
+    gitlabIngressRoute: "gitlab.{{clusterFQDN}}"
+    dashboardIngressRoute: "dashboard.{{clusterFQDN}}"
+    weaveIngressRoute: "weave.{{clusterFQDN}}"
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"
     manifests:
       - dashboardManifest
@@ -115,3 +143,9 @@
       - jenkins
       - gitlab
       - gogs
+    ingressRoutes:
+      - dapIngressRoute
+      - jenkinsIngressRoute
+      - gitlabIngressRoute
+      - dashboardIngressRoute
+      - weaveIngressRoute
