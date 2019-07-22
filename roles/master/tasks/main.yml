@@ -1,19 +1,4 @@
 ---
-- name: Get POD information for DAP instances
-  k8s_facts:
-    kind: pod
-    namespace: dap
-    label_selectors:
-      - role = source
-  register: dappod
-  until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 60
-  delay: 2
-
-- name: Configure Variable with pod name
-  set_fact:
-    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
-
 - name: Check to see if DAP is running.
   uri:
     url: "https://{{dapIngressRoute}}/health"
@@ -24,12 +9,73 @@
     status_code: 200, 404, -1
   register: dapSourceConfig
 
+- name: Get POD information for DAP instances
+  k8s_facts:
+    kind: pod
+    namespace: dap
+    label_selectors:
+      - role = source
+  register: dappod
+  until: dappod.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
+  delay: 2
+  when: dapSourceConfig.status == -1
+
+- name: Configure Variable with pod name
+  set_fact:
+    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+  when: dapSourceConfig.status == -1
+
 - name: Configure Source node
   include_tasks: configureSource.yml
   when: dapSourceConfig.status == -1
 
 - name: Load Policies
   include_tasks: loadPolicy.yml
+
+- name: Get API token
+  uri:
+    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/login
+    return_content: yes
+    method: GET
+    url_password: "{{ dapAdminPass }}"
+    url_username: "{{ dapAdmin }}"
+    force_basic_auth: yes
+    validate_certs: no
+  register: dapAPIKey
+
+- name: Get Authentication token
+  uri:
+    url: https://{{dapIngressRoute}}/authn/{{ dapAccount }}/{{ dapAdmin }}/authenticate
+    return_content: yes
+    method: POST
+    body: "{{ dapAPIKey.content }}"
+    validate_certs: no
+  register: dapToken
+
+- name: Generate dap JWT
+  set_fact:
+    dapTokenFormatted: "{{ dapToken.content | b64encode | replace('\r\n', '') }}"
+  no_log: yes
+
+- name: Check to see if CA Variables for authn-k8s are filled
+  uri:
+    url: https://{{dapIngressRoute}}/secrets/{{ dapAccount }}/variable/conjur/authn-k8s/{{ authnk8s_name}}/ca/key
+    status_code: 200, 404
+    return_content: yes
+    method: GET
+    headers:
+      Authorization: Token token="{{ dapTokenFormatted }}"
+    validate_certs: no
+  register: value
+  until: value.status == 200 or value.status == 404
+  retries: 60
+  delay: 2
+  with_items:
+    - k8s-follower
+    - okd-follower
+  loop_control:
+    loop_var: authnk8s_name
 
 - name: Initialize certificates for authn-k8s
   shell: |
@@ -39,3 +85,4 @@
     - okd-follower
   loop_control:
     loop_var: cert_item
+  when: value.results[0].status == 404 or value.results[1].status == 404
