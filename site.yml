@@ -63,6 +63,7 @@
         path: /etc/hosts
         line: 127.0.0.1 {{ item }}
         state: present
+      check_mode: yes
       with_items:
        - "{{ ingressRoutes }}"
       when: mode == 'new'
