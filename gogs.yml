@@ -37,18 +37,3 @@
     password: "{{ gogsAdminPass }}"
     force_basic_auth: true
     status_code: [201, 422] # 422 status code is given when the org already exists
-
-- name: Create gogs team
-  uri:
-    url: "http://{{gogsIngressRoute}}/orgs/{{ gogsAccount }}/teams"
-    method: POST
-    body_format: json
-    body: {
-      "name": "apiAccess",
-      "description": "Team_for_API",
-      "permission": "read"
-      }
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [201, 422] # 422 status code is given when the team already exists
