@@ -61,7 +61,7 @@
         state: present
       check_mode: yes
       register: hostsChecks
-      with_items:
+      loop:
        - "{{ ingressRoutes }}"
       loop_control:
         loop_var: hostsDNS
