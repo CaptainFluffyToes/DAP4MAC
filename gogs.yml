@@ -3,11 +3,14 @@
   uri:
     url: "http://{{ gogsIngressRoute }}/install"
     body_format: json
-    status_code: 200, 404
+    status_code: 200, 404, 503
     return_content: yes
     validate_certs: NO
     method: GET
   register: gogs_setup
+  until: gogs_setup.status == 200 or gogs_setup.status == 404
+  retries: 60
+  delay: 2
 
 - name: gogs initial configuration
   uri:
