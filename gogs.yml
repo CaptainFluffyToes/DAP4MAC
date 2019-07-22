@@ -3,7 +3,7 @@
   uri:
     url: "http://{{ gogsIngressRoute }}/install"
     body_format: json
-    status_code: 200, 404, 503
+    status_code: 200, 404
     return_content: yes
     validate_certs: NO
     method: GET
