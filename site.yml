@@ -155,6 +155,7 @@
       become: yes
   
   vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
     adminPass: 'Cyberark1'
     account: 'cyberark'
     dapAdmin: 'admin'
