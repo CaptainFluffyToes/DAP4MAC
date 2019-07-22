@@ -21,7 +21,7 @@
     return_content: yes
     follow_redirects: all
     status_code: 200,302
-  register: gogs_result
+  register: gogs_config
   when: gogs_setup.status == 200
 
 - name: Create gogs organization
@@ -40,3 +40,4 @@
     password: "{{ gogsAdminPass }}"
     force_basic_auth: true
     status_code: [201, 422] # 422 status code is given when the org already exists
+    when: gogs_config.status == 200
