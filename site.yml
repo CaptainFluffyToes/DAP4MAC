@@ -61,7 +61,7 @@
         state: present
       check_mode: yes
       register: hostsChecks
-      loop:
+      with_items:
        - "{{ ingressRoutes }}"
       loop_control:
         loop_var: hostsDNS
@@ -155,7 +155,7 @@
       become: yes
   
   vars:
-    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    # ansible_python_interpreter: '{{ ansible_playbook_python }}'
     adminPass: 'Cyberark1'
     account: 'cyberark'
     dapAdmin: 'admin'
