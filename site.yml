@@ -58,6 +58,16 @@
     private: no
   
   tasks:
+    - name: Check for Hostfile entries
+      lineinfile:
+        path: /etc/hosts
+        line: 127.0.0.1 {{ item }}
+        state: present
+      register: hostsCheck
+      with_items:
+       - "{{ ingressRoutes }}"
+      when: mode == 'new'
+
     - name: Add host entries for webpages
       lineinfile:
         path: /etc/hosts
