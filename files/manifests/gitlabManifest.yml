@@ -49,7 +49,7 @@ spec:
         image: gitlab/gitlab-ce
         env:
           - name: GITLAB_OMNIBUS_CONFIG
-            value: "external_url 'http://gitlab.k8scluster.local/'"
+            value: "gitlab_rails['initial_root_password']='Cyberark1'"
           - name: CONJUR_APPLIANCE_URL
             value: https://access.dap.svc.cluster.local/api
           - name: CONJUR_AUTHN_URL
