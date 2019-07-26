@@ -7,21 +7,21 @@
         msg: >
           " You must update Ansible to at least 2.8."
 
-    - name: Check for websites
-      uri:
-        url: "{{ item.url }}"
-        body_format: json
-        status_code: 200
-        return_content: yes
-        validate_certs: NO
-        method: GET
-      register: result
-      until: result.status == 200
-      retries: 5
-      delay: 2
-      with_items:
-      - { url: 'https://hub.docker.com' }
-      - { url: 'https://github.com' }
+    # - name: Check for websites
+    #   uri:
+    #     url: "{{ item.url }}"
+    #     body_format: json
+    #     status_code: 200
+    #     return_content: yes
+    #     validate_certs: NO
+    #     method: GET
+    #   register: result
+    #   until: result.status == 200
+    #   retries: 5
+    #   delay: 2
+    #   with_items:
+    #   - { url: 'https://hub.docker.com' }
+    #   - { url: 'https://github.com' }
 
     - name: install PIP modules
       pip:
@@ -114,10 +114,6 @@
       include_tasks: gogs.yml
       when: mode == 'new'
 
-    - name: Conigure Gitlab
-      include_tasks: gitlab.yml
-      when: mode == 'new'
-
     - name: Conigure Jenkins
       include_tasks: jenkins.yml
       when: mode == 'new'
@@ -181,16 +177,13 @@
       - dapSourceManifest
       - dapAccessManifest
       - jenkinsManifest
-      - gitlabManifest
       - gogsManifest
     appNamespaces:
       - jenkins
-      - gitlab
       - gogs
     ingressRoutes:
       - "{{dapIngressRoute}}"
       - "{{jenkinsIngressRoute}}"
-      - "{{gitlabIngressRoute}}"
       - "{{dashboardIngressRoute}}"
       - "{{weaveIngressRoute}}"
       - "{{gogsIngressRoute}}"
