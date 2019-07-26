@@ -26,12 +26,6 @@
         annotations:
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
-      
-      - !host
-        id: gitlab/*/*
-        annotations:
-          kubernetes/authentication-container-name: authenticator
-          kubernetes: "true"
 
       - !host
         id: gogs/*/*
