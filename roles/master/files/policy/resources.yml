@@ -51,3 +51,27 @@
       resource: *backendsecrets
       privileges:
        - execute
+
+- !policy
+  id: scm
+  body:
+    - &scmSecrets
+      - !variable
+        id: gogsUser
+
+      - !variable
+        id: gogsPassword
+    
+    - !permit
+      role: !group /jenkins/full-access
+      resource: *scmSecrets
+      privileges:
+       - read
+       - update
+       - execute
+    
+    - !permit
+      role: !group /jenkins/read-only
+      resource: *scmSecrets
+      privileges:
+       - execute
