@@ -112,6 +112,7 @@
     force_basic_auth: true
     status_code: [200]
   register: teams
+  when: gogsConfigState == "configured"
 
 - name: Get list of repos
   uri: 
@@ -122,6 +123,7 @@
     force_basic_auth: true
     status_code: [200]
   regsiter: repos
+  when: gogsConfigState == "configured"
 
 - debug:
     var: item
@@ -147,3 +149,4 @@
   loop: "{{ teams.json | json_query('[*].id') }}"
   loop_control:
     loop_var: teamsID
+  when: gogsConfigState == "configured"
