@@ -190,3 +190,4 @@
     gogsAdmin: 'eva'
     gogsAdminPass: "{{adminPass}}"
     gogsOrg: "{{ account }}"
+    gogsApiAccessPass: "{{ gogsAdminPass }}"
