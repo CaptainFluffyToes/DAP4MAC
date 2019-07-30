@@ -9,29 +9,58 @@
     status_code: 200, 404, -1
   register: dapSourceConfig
 
-- name: Get POD information for DAP instances
-  k8s_facts:
-    kind: pod
-    namespace: dap
-    label_selectors:
-      - role = source
-  register: dappod
-  until: dappod.resources[0].status.containerStatuses[0].ready == true
-  retries: 60
-  delay: 2
-  when: dapSourceConfig.status == -1
-
-- name: Configure Variable with pod name
+- name: Set DAP configuration
   set_fact:
-    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+    dapSourceConfig: configured
+  when: dapSourceConfig.status == 200
+
+- name: Set DAP configuration
+  set_fact:
+    dapSourceConfig: unconfigured
   when: dapSourceConfig.status == -1
 
-- name: Configure Source node
-  include_tasks: configureSource.yml
-  when: dapSourceConfig.status == -1
+- name: Perform configuration tasks
+  block:
+    - name: Get POD information for DAP instances
+      k8s_facts:
+        kind: pod
+        namespace: dap
+        label_selectors:
+          - role = source
+      register: dappod
+      until: dappod.resources[0].status.containerStatuses[0].ready == true
+      retries: 60
+      delay: 2
+
+    - name: Configure Variable with pod name
+      set_fact:
+        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+
+    - name: Configure DAP 
+      shell: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
+
+    - name: Wait for health page to report OK
+      uri:
+        url: "https://{{dapIngressRoute}}/health"
+        return_content: yes
+        body_format: json
+        validate_certs: no
+        method: GET
+      register: results
+      until: results.conjur_health == "OK"
+      retries: 60
+      delay: 2
+
+    - name: Set DAP configuration
+      set_fact:
+        dapSourceConfig: configured
+      when: results.conjur_health == "OK"
+  when: dapSourceConfig == "unconfigured"
 
 - name: Load Policies
   include_tasks: loadPolicy.yml
+  when: dapSourceConfig == "configured"
 
 - name: Get API token
   uri:
