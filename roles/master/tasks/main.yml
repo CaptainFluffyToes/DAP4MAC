@@ -111,7 +111,6 @@
         dapSourceConfig: policiesLoaded
   when: dapSourceConfig == "configured"
 
-
 - name: Check certificates and set authn-k8s status
   block:
     - name: Check to see if CA Variables for authn-k8s are filled
