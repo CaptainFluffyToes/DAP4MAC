@@ -14,13 +14,37 @@
 
 - name: Set status of gogs configuration
   set_fact:
-    gogsConfigState: "configured"
-  when: gogs_setup.status == 404
+    gogsConfigState: "unconfigured"
+  when: gogs_setup.status == 200
 
 - name: Set status of gogs configuration
   set_fact:
-    gogsConfigState: "unconfigured"
-  when: gogs_setup.status == 200
+    gogsConfigState: "initialConfigured"
+  when: gogs_setup.status == 404
+
+- name: Check to see if Gogs has been sent it's initial information
+  block:
+    - name: Check that we can get a list of organizations.
+      uri:
+        url: "http://{{ gogsIngressRoute }}/api/v1/users/{{gogsOrg}}"
+        body_format: json
+        status_code: 200
+        user: "{{ gogsAdmin }}"
+        password: "{{ gogsAdminPass }}"
+        return_content: yes
+        validate_certs: NO
+        method: GET
+      register: gogs_setup
+      until: gogs_setup.status == 200
+      retries: 60
+      delay: 2
+
+    - name: Set status of gogs configuration
+      set_fact:
+        gogsConfigState: "configured"
+      when: gogs_setup.content != "Gogs is a painless self-hosted Git service"
+  when: gogsConfigState == "initialConfigured"
+
 
 - name: gogs initial configuration
   block:
@@ -37,116 +61,103 @@
 
     - name: Allow other tasks to run
       set_fact:
-        gogsConfigState: "configured"
+        gogsConfigState: "initialConfigured"
   when: gogsConfigState == "unconfigured"
 
-- name: Create gogs organization
-  uri:
-    url: "http://{{gogsIngressRoute}}/api/v1/admin/users/{{ gogsAdmin }}/orgs"
-    method: POST
-    body_format: json
-    body: {
-      "username": "{{ gogsOrg }}",
-      "full_name": "Cyberark",
-      "description": "Cyberark_Org.",
-      "website": "https://www.cyberark.com",
-      "location": "US"
-      }
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [201, 422] # 422 status code is given when the org already exists
-  when: gogsConfigState == "configured"
-
-- name: Create gogs teams
-  uri:
-    url: "http://{{gogsIngressRoute}}/api/v1/admin/orgs/{{ gogsOrg }}/teams"
-    method: POST
-    body_format: json
-    body: {
-      "name": "{{ item.name }}",
-      "description": "{{ item.description }}",
-      "permission": "{{ item.permission }}"
-      }
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [201, 422] # 422 status code is given when the org already exists
-  when: gogsConfigState == "configured"
-  register: "{{item.name}}Status"
-  with_items:
-    - { name: 'developers', description: 'Team to add developers for admin access to repositories', permission: 'admin' }
-    - { name: 'api', description: 'Team to add devops tools for read access to repositories', permission: 'read' }
-
-- name: Create organization repo
-  uri:
-    url: "http://{{gogsIngressRoute}}/api/v1/admin/users/{{ gogsOrg }}/repos"
-    method: POST
-    body_format: json
-    body: {
-          name: "{{ item.name }}",
-          description: "{{ item.description }}",
-          private: true,
-          auto_init: true,
-          gitignores: "macOS",
-          license: "MIT License",
-          readme: "Default"
-}
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [201, 422] # 422 status code is given when the org already exists
-  when: gogsConfigState == "configured"
-  with_items:
-    - { name: "Lab1-Summon", description: "This repo will use authn-k8s to pull back a secret."}
-    - { name: "Lab2-RESTcall", description: "This repo will showcase a simple rest call to get a secret."}
-    - { name: "Lab3-JenkinsPlugin", description: "This repo will make use of the Jenkins DAP plugin."}
-    - { name: "DAP-Policy", description: "The repo is responsible for storing all of the policies for DAP."}
-
-- name: Get list of gogs teams
-  uri:
-    url: "http://{{gogsIngressRoute}}/api/v1/orgs/{{ gogsOrg }}/teams"
-    method: GET
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [200]
-  register: teams
-  when: gogsConfigState == "configured"
-
-- name: Get list of repos
-  uri: 
-    url: "http://{{gogsIngressRoute}}/api/v1/user/repos"
-    method: GET
-    user: "{{ gogsAdmin }}"
-    password: "{{ gogsAdminPass }}"
-    force_basic_auth: true
-    status_code: [200]
-  regsiter: repos
-  when: gogsConfigState == "configured"
-
-- debug:
-    var: item
-  loop: "{{ teams.json | json_query('[*].id') }}"
-
-- debug:
-    var: item
-  loop: "{{ repos.json | json_query('[*].name') }}"
-
-- name: Block to add repos to the teams
+- name: Set up gogs components
   block:
-    - name: Add repos to team
-      uri: 
-        url: "http://{{gogsIngressRoute}}/api/v1//admin/teams/{{ teamsID }}/repos/{{ reposName }}"
-        method: PUT
+    - name: Create gogs organization
+      uri:
+        url: "http://{{gogsIngressRoute}}/api/v1/admin/users/{{ gogsAdmin }}/orgs"
+        method: POST
+        body_format: json
+        body: {
+          "username": "{{ gogsOrg }}",
+          "full_name": "Cyberark",
+          "description": "Cyberark_Org.",
+          "website": "https://www.cyberark.com",
+          "location": "US"
+          }
         user: "{{ gogsAdmin }}"
         password: "{{ gogsAdminPass }}"
         force_basic_auth: true
-        status_code: [204]
-      loop: "{{ repos.json | json_query('[*].name') }}"
-      loop_control:
-        loop_var: reposName
-  loop: "{{ teams.json | json_query('[*].id') }}"
-  loop_control:
-    loop_var: teamsID
-  when: gogsConfigState == "configured"
+        status_code: [201, 422] # 422 status code is given when the org already exists
+
+    - name: Create gogs teams
+      uri:
+        url: "http://{{gogsIngressRoute}}/api/v1/admin/orgs/{{ gogsOrg }}/teams"
+        method: POST
+        body_format: json
+        body: {
+          "name": "{{ item.name }}",
+          "description": "{{ item.description }}",
+          "permission": "{{ item.permission }}"
+          }
+        user: "{{ gogsAdmin }}"
+        password: "{{ gogsAdminPass }}"
+        return_content: yes
+        force_basic_auth: true
+        status_code: [201, 422] # 422 status code is given when the org already exists
+      with_items:
+        - { name: 'developers', description: 'Team to add developers for admin access to repositories', permission: 'admin' }
+        - { name: 'api', description: 'Team to add devops tools for read access to repositories', permission: 'read' }
+
+    - name: Create Tool Users
+      uri:
+        url: "http://{{gogsIngressRoute}}/api/v1/admin/users"
+        method: POST
+        body_format: json
+        body: {
+              login_name: "{{ item.login_name }}",
+              username: "{{ item.login_name }}",
+              email: "{{ item.email }}",
+              password: "{{ gogsApiAccessPass }}"
+    }
+        user: "{{ gogsAdmin }}"
+        password: "{{ gogsAdminPass }}"
+        force_basic_auth: true
+        status_code: [201, 422]
+      with_items:
+        - { login_name: "jenkins", email: "jenkins@cyberark.com"}
+        - { login_name: "ansible", email: "ansible@cyberark.com"}
+
+    - name: Create organization repo
+      uri:
+        url: "http://{{gogsIngressRoute}}/api/v1/admin/users/{{ gogsOrg }}/repos"
+        method: POST
+        body_format: json
+        body: {
+              name: "{{ item.name }}",
+              description: "{{ item.description }}",
+              private: true,
+              auto_init: true,
+              gitignores: "macOS",
+              license: "MIT License",
+              readme: "Default"
+    }
+        user: "{{ gogsAdmin }}"
+        password: "{{ gogsAdminPass }}"
+        force_basic_auth: true
+        status_code: [201, 422] # 422 status code is given when the org already exists
+      with_items:
+        - { name: "Lab1-Summon", description: "This repo will use authn-k8s to pull back a secret."}
+        - { name: "Lab2-RESTcall", description: "This repo will showcase a simple rest call to get a secret."}
+        - { name: "Lab3-JenkinsPlugin", description: "This repo will make use of the Jenkins DAP plugin."}
+        - { name: "DAP-Policy", description: "The repo is responsible for storing all of the policies for DAP."}
+
+    - name: set status of gogs configuration
+      set_fact:
+        gogsConfigState: "configured"
+  when: gogsConfigState == "initialConfigured"
+
+# - debug:
+#     var: item
+#   loop: "{{ teams.json | json_query('[*].id') }}"
+
+# - debug:
+#     var: item
+#   loop: "{{ repos.json | json_query('[*].name') }}"
+
+# - debug:
+#     var: item
+#   loop: "{{ users.json | json_query('[*].name') }}"
