@@ -89,29 +89,43 @@
        - "{{ ingressRoutes }}"
       when: mode == 'new' and hostsChecks.changed == true
       become: yes
+    
+  
+    - name: Load cluster tools and set demostage status
+      block:
+        - name: Load Cluster tools manifests
+          k8s:
+            state: present
+            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+          register: demoStage
+          with_items:
+            - dashboardManifest
+            - nginxingressManifest
+            - dashboardIngressManifest
+            - weaveManifest
+            - weaveIngressManifest
 
-    - name: Load Manifests
-      k8s:
-        state: present
-        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-      with_items:
-        - "{{ manifests }}"
+        - name: Set demo status
+          set_fact:
+            demoStage: "toolsLoaded"
       when: mode == 'new'
-    
-    - name: Configure DAP
-      include_tasks: "{{ item }}.yml"
-      with_items:
-        - source
-        - access
-        - sslCertConfigMap
-        - gogs
-        - jenkins
-      when: mode == "new"
-    
+
+    - name: Configure DAP source and access. Set demo status
+      block:
+        - name: Configure DAP
+          include_tasks: "{{ item }}.yml"
+          with_items:
+            - source
+            - access
+        - name: Set demo stage status
+          set_fact:
+            demoStage: "dapConfigured"
+      when: demoStage == "toolsLoaded"
+   
     - name: Remove Cluster Items
       k8s:
         state: absent
@@ -121,7 +135,15 @@
           reason: completed
           status: "True"
       with_items:
-        - "{{ manifests }}"
+        - dashboardManifest
+        - nginxingressManifest
+        - dashboardIngressManifest
+        - weaveManifest
+        - weaveIngressManifest
+        - dapSourceManifest
+        - dapAccessManifest
+        - gogsManifest
+        - jenkinsManifest
       when: mode == 'delete'
 
     - name: Ask user for password for removal of hosts
@@ -161,21 +183,10 @@
     dapMasterContainerName: 'node'
     dapIngressRoute: "dap.{{clusterFQDN}}"
     jenkinsIngressRoute: "jenkins.{{clusterFQDN}}"
-    gitlabIngressRoute: "gitlab.{{clusterFQDN}}"
     dashboardIngressRoute: "dashboard.{{clusterFQDN}}"
     weaveIngressRoute: "weave.{{clusterFQDN}}"
     gogsIngressRoute: "gogs.{{clusterFQDN}}"
     demoMachineAddress: "{{ ansible_default_ipv4.address }}"
-    manifests:
-      - dashboardManifest
-      - nginxingressManifest
-      - dashboardIngressManifest
-      - weaveManifest
-      - weaveIngressManifest
-      - dapSourceManifest
-      - dapAccessManifest
-      - jenkinsManifest
-      - gogsManifest
     appNamespaces:
       - jenkins
       - gogs
