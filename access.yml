@@ -29,7 +29,7 @@
 - name: Check that access node is not already configured
   shell: |
     kubectl -n dap exec {{ accessPodName }} -i -- evoke role
-  register: accessNode_configured
+  register: accessNodeConfig
 
 - name: Configure follower when DAP instance is not configured
   block:
@@ -84,4 +84,8 @@
     - name: Configure Access node
       shell: |
         kubectl exec -n dap {{ accessPodName }} -i -- evoke configure follower
-  when: accessNode_configured.stdout == 'blank'
+
+    - name: Set status of access node
+      set_fact:
+        accessNodeConfig: "configured"
+  when: accessNodeConfig.stdout == 'blank'
