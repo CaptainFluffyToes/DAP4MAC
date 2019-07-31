@@ -19,17 +19,17 @@
     validate_certs: no
     method: GET
     status_code: 200, 404
-  register: dapSourceConfig
+  register: dapSourceStatus
 
 - name: Set DAP configuration
   set_fact:
     dapSourceConfig: configured
-  when: dapSourceConfig.status == 200
+  when: dapSourceStatus.status == 200
 
 - name: Set DAP configuration
   set_fact:
     dapSourceConfig: unconfigured
-  when: dapSourceConfig.status == 404
+  when: dapSourceStatus.status == 404
 
 - name: Perform configuration tasks
   block:
