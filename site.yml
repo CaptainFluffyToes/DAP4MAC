@@ -99,12 +99,10 @@
       when: mode == 'new'
     
     - name: Configure DAP
-      include_role:
-        name: "{{item}}"
-      when: mode == 'new'
+      include_tasks: "{{ item }}.yml"
       with_items:
-        - master
-        - follower
+        - source
+        - access
       
     - name: Conigure SSL Cert configMap
       include_tasks: sslCertConfigMap.yml

@@ -97,7 +97,7 @@
         headers:
           Authorization: Token token="{{ dapTokenFormatted }}"
         validate_certs: no
-        body: "{{lookup('file', '{{ role_path }}/files/policy/{{ policy_item }}.yml') }}"
+        body: "{{lookup('file', '{{ playbook_dir }}/files/scm/DAP-Policy/{{ policy_item }}.yml') }}"
       with_items:
         - root
         - conjur/authn-k8s
