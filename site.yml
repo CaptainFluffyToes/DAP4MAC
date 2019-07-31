@@ -94,6 +94,10 @@
       k8s:
         state: present
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
       with_items:
         - "{{ manifests }}"
       when: mode == 'new'
