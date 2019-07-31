@@ -1,4 +1,16 @@
 ---
+- name: Load DAP source manifest
+  k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+  register: dapManifestStatus
+  with_items:
+    - dapSourceManifest
+
 - name: Check to see if DAP is running.
   uri:
     url: "https://{{dapIngressRoute}}/health"
@@ -6,7 +18,7 @@
     body_format: json
     validate_certs: no
     method: GET
-    status_code: 200, 404, -1
+    status_code: 200, 404
   register: dapSourceConfig
 
 - name: Set DAP configuration
@@ -17,7 +29,7 @@
 - name: Set DAP configuration
   set_fact:
     dapSourceConfig: unconfigured
-  when: dapSourceConfig.status == -1
+  when: dapSourceConfig.status == 404
 
 - name: Perform configuration tasks
   block:

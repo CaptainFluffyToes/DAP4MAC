@@ -1,0 +1,87 @@
+---
+- name: Load DAP access manifest
+  k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+  register: dapManifestStatus
+  with_items:
+    - dapAccessManifest
+
+- name: Get POD information for DAP access instance
+  k8s_facts:
+    kind: pod
+    namespace: dap
+    label_selectors:
+      - role = access
+  register: dapAccess
+  until: dapAccess.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
+  delay: 2
+
+- name: Configure Variable with pod name
+  set_fact:
+    accessPodName: "{{ dapAccess.resources[0].metadata.name }}"
+
+- name: Check that access node is not already configured
+  shell: |
+    kubectl -n dap exec {{ accessPodName }} -i -- evoke role
+  register: accessNode_configured
+
+- name: Configure follower when DAP instance is not configured
+  block:
+    - name: Get POD information for DAP source instance
+      k8s_facts:
+        kind: pod
+        namespace: dap
+        label_selectors:
+          - role = source
+      register: dapSource
+      until: dapSource.resources[0].status.containerStatuses[0].ready == true
+      retries: 60
+      delay: 2
+
+    - name: Configure Variable with pod name
+      set_fact:
+        sourcePodName: "{{ dapSource.resources[0].metadata.name }}"
+
+    - name: Create cert for Follower
+      shell: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- evoke ca issue --force {{ dapAccessService }}
+
+    - name: Generate Seed
+      shell: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- evoke seed follower {{ dapAccessService }}
+      register: seed
+
+    - name: save seed file
+      local_action: copy content={{ seed.stdout}} dest={{ playbook_dir }}/files/seed.tar
+
+    - name: replace seed file config map
+      shell: |
+        kubectl -n dap create configmap seed --from-file {{ playbook_dir }}/files/seed.tar -o yaml --dry-run | kubectl replace -f -
+
+    - name: Delete seed.tar file
+      file:
+        state: absent
+        path: "{{ playbook_dir }}/files/seed.tar"
+
+    - name: Check for seed file contents
+      shell: |
+        kubectl exec -n dap {{ accessPodName }} -i -- ls /seed
+      register: output
+      until: output.stdout == "seed.tar"
+      retries: 60
+      delay: 2
+
+    - name: Unpack seed
+      shell: |
+        kubectl exec -n dap {{ accessPodName }} -i -- evoke unpack seed /seed/seed.tar
+
+    - name: Configure Access node
+      shell: |
+        kubectl exec -n dap {{ accessPodName }} -i -- evoke configure follower
+  when: accessNode_configured.stdout == 'blank'
