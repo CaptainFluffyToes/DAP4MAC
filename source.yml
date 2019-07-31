@@ -11,6 +11,21 @@
   with_items:
     - dapSourceManifest
 
+- name: Get POD information for DAP instances
+  k8s_facts:
+    kind: pod
+    namespace: dap
+    label_selectors:
+      - role = source
+  register: dappod
+  until: dappod.resources[0].status.containerStatuses[0].ready == true
+  retries: 60
+  delay: 2
+
+- name: Configure Variable with pod name
+  set_fact:
+    sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+
 - name: Check to see if DAP is running.
   uri:
     url: "https://{{dapIngressRoute}}/health"
@@ -33,21 +48,6 @@
 
 - name: Perform configuration tasks
   block:
-    - name: Get POD information for DAP instances
-      k8s_facts:
-        kind: pod
-        namespace: dap
-        label_selectors:
-          - role = source
-      register: dappod
-      until: dappod.resources[0].status.containerStatuses[0].ready == true
-      retries: 60
-      delay: 2
-
-    - name: Configure Variable with pod name
-      set_fact:
-        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
-
     - name: Configure DAP 
       shell: |
         kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
@@ -139,8 +139,8 @@
       retries: 60
       delay: 2
       with_items:
-        - k8s-follower
         - okd-follower
+        - k8s-follower
       loop_control:
         loop_var: authnk8s_name
 
@@ -148,8 +148,8 @@
       shell: |
         kubectl -n dap exec {{ sourcePodName }} -i -- chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/{{cert_item}}"]
       with_items:
-        - k8s-follower
         - okd-follower
+        - k8s-follower
       loop_control:
         loop_var: cert_item
       when: value.results[0].status == 404 or value.results[1].status == 404
