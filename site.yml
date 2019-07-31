@@ -103,23 +103,19 @@
       with_items:
         - source
         - access
-      
-    - name: Conigure SSL Cert configMap
-      include_tasks: sslCertConfigMap.yml
-      when: mode == 'new'
-
-    - name: Configure gogs
-      include_tasks: gogs.yml
-      when: mode == 'new'
-
-    - name: Conigure Jenkins
-      include_tasks: jenkins.yml
-      when: mode == 'new'
+        - sslCertConfigMap
+        - gogs
+        - jenkins
+      when: mode == "new"
     
     - name: Remove Cluster Items
       k8s:
         state: absent
         src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
       with_items:
         - "{{ manifests }}"
       when: mode == 'delete'
