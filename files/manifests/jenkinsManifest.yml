@@ -6,15 +6,6 @@ metadata:
 
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: k8s-app-ssl
-  namespace: jenkins
-data:
-  ssl-certificate: ''
-
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jenkins-account
