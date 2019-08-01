@@ -68,14 +68,22 @@
             prompt: "Enter SUDO password"
             echo: no
           register: sudo
-          when: hostsChecks.changed == true and ansible_become_pass is undefined
+          when: hostsChecks.changed == true and ansible_become_pass is undefined and mode == "new"
+          no_log: yes
+
+        - name: Ask user for password to remove hosts
+          pause:
+            prompt: "Enter SUDO password"
+            echo: no
+          register: sudo
+          when: hostsChecks.changed == false and ansible_become_pass is undefined and mode == "delete"
           no_log: yes
 
         - name: Set ansible become password
           set_fact:
             ansible_become_pass: "{{ sudo.user_input }}"
           no_log: yes
-          when: hostsChecks.changed == true
+          when: (hostsChecks.changed == false and ansible_become_pass is undefined and mode == "delete") or (hostsChecks.changed == true and ansible_become_pass is undefined and mode == "new")
 
         - name: Add host entries for webpages
           lineinfile:
@@ -85,6 +93,16 @@
           with_items:
           - "{{ ingressRoutes }}"
           when: mode == 'new' and hostsChecks.changed == true
+          become: yes
+
+        - name: Remove host entries for webpages
+          lineinfile:
+            path: /etc/hosts
+            line: 127.0.0.1 {{ item }}
+            state: absent
+          with_items:
+            - "{{ ingressRoutes }}"
+          when: mode == 'delete' and hostsChecks.changed == false
           become: yes
       when: mode == "new" or mode == "delete"
     
@@ -149,15 +167,7 @@
       no_log: yes
       when: hostsChecks.changed == false and mode == "delete"
 
-    - name: Remove host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ item }}
-        state: absent
-      with_items:
-        - "{{ ingressRoutes }}"
-      when: mode == 'delete'
-      become: yes
+
 
     - name: Remove Cluster Items
       k8s:
