@@ -1,17 +1,37 @@
 ---
-- name: Create jenkins namespace
-  k8s:
-    name: jenkins
-    api_version: v1
-    kind: Namespace
-    state: present
-    wait: yes
-    wait_condition:
-      reason: completed
-      status: "True"
+- name: Check if Jenkins is already running
+  uri:
+    url: "https://{{jenkinsIngressRoute}}"
+    return_content: yes
+    body_format: json
+    validate_certs: no
+    method: GET
+    status_code: 200, 503
+  register: jenkinsWeb
 
-- name: Get SSL certificate
+- name: Set jenkins status
+  set_fact:
+    jenkinsStatus: "configured"
+  when: jenkinsWeb.status == 200
+
+- name: Set jenkins status
+  set_fact:
+    jenkinsStatus: "unconfigured"
+  when: jenkinsWeb.status == 503
+
+- name: Set up jenkins
   block:
+    - name: Create jenkins namespace
+      k8s:
+        name: jenkins
+        api_version: v1
+        kind: Namespace
+        state: present
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+
     - name: Get POD information for DAP instances
       k8s_facts:
         kind: pod
@@ -46,17 +66,18 @@
         state: absent
         path: "{{ playbook_dir }}/files/ssl.pem"
 
-- name: Load Jenkins manifest
-  k8s:
-    state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-    wait: yes
-    wait_condition:
-      reason: completed
-      status: "True"
-  with_items:
-    - jenkinsManifest
+    - name: Load Jenkins manifest
+      k8s:
+        state: present
+        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+      with_items:
+        - jenkinsManifest
 
-- name: Set Jenkins status
-  set_fact:
-    jenkinsManifestStatus: "loadedManifest"
+    - name: Set jenkins status
+      set_fact:
+        jenkinsStatus: "initialConfigured"
+  when: jenkinsStatus == "unconfigured"
