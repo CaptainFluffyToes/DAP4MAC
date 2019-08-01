@@ -137,26 +137,6 @@
             demoStage: "demoToolsConfigured"
       when: demoStage == "dapConfigured"
 
-    - name: Remove Cluster Items
-      k8s:
-        state: absent
-        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-      with_items:
-        - dashboardManifest
-        - nginxingressManifest
-        - dashboardIngressManifest
-        - weaveManifest
-        - weaveIngressManifest
-        - dapSourceManifest
-        - dapAccessManifest
-        - gogsManifest
-        - jenkinsManifest
-      when: mode == 'delete'
-
     - name: Ask user for password for removal of hosts
       pause:
         prompt: "Enter SUDO password"
@@ -177,9 +157,29 @@
         line: 127.0.0.1 {{ item }}
         state: absent
       with_items:
-       - "{{ ingressRoutes }}"
+        - "{{ ingressRoutes }}"
       when: mode == 'delete'
       become: yes
+      
+    - name: Remove Cluster Items
+      k8s:
+        state: absent
+        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+      with_items:
+        - dashboardManifest
+        - nginxingressManifest
+        - dashboardIngressManifest
+        - weaveManifest
+        - weaveIngressManifest
+        - dapSourceManifest
+        - dapAccessManifest
+        - gogsManifest
+        - jenkinsManifest
+      when: mode == 'delete'
   
   vars:
     # ansible_python_interpreter: '{{ ansible_playbook_python }}'
