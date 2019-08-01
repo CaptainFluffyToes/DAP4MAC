@@ -49,41 +49,44 @@
     private: no
   
   tasks:
-    - name: Check host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ hostsDNS }}
-        state: present
-      check_mode: yes
-      register: hostsChecks
-      with_items:
-       - "{{ ingressRoutes }}"
-      loop_control:
-        loop_var: hostsDNS
+    - name: Modify hosts file if needed
+      block:
+        - name: Check host entries for webpages
+          lineinfile:
+            path: /etc/hosts
+            line: 127.0.0.1 {{ hostsDNS }}
+            state: present
+          check_mode: yes
+          register: hostsChecks
+          with_items:
+          - "{{ ingressRoutes }}"
+          loop_control:
+            loop_var: hostsDNS
 
-    - name: Ask user for password to add hosts
-      pause:
-        prompt: "Enter SUDO password"
-        echo: no
-      register: sudo
-      when: hostsChecks.changed == true and ansible_become_pass is undefined and mode == 'new'
-      no_log: yes
+        - name: Ask user for password to add hosts
+          pause:
+            prompt: "Enter SUDO password"
+            echo: no
+          register: sudo
+          when: hostsChecks.changed == true and ansible_become_pass is undefined
+          no_log: yes
 
-    - name: Set ansible become password
-      set_fact:
-        ansible_become_pass: "{{ sudo.user_input }}"
-      no_log: yes
-      when: hostsChecks.changed == true and mode == 'new'
+        - name: Set ansible become password
+          set_fact:
+            ansible_become_pass: "{{ sudo.user_input }}"
+          no_log: yes
+          when: hostsChecks.changed == true
 
-    - name: Add host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ item }}
-        state: present
-      with_items:
-       - "{{ ingressRoutes }}"
-      when: mode == 'new' and hostsChecks.changed == true
-      become: yes
+        - name: Add host entries for webpages
+          lineinfile:
+            path: /etc/hosts
+            line: 127.0.0.1 {{ item }}
+            state: present
+          with_items:
+          - "{{ ingressRoutes }}"
+          when: mode == 'new' and hostsChecks.changed == true
+          become: yes
+      when: mode == "new" or mode == "delete"
     
     - name: Load cluster tools and set demostage status
       block:
@@ -178,6 +181,7 @@
   
   vars:
     # ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    clusterFQDN: 'k8scluster.local'
     adminPass: 'Cyberark1'
     account: 'cyberark'
     dapAdmin: 'admin'
