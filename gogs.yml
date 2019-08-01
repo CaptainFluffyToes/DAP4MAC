@@ -219,15 +219,3 @@
       set_fact:
         gogsConfigState: "configured"
   when: gogsConfigState == "initialConfigured"
-
-# - debug:
-#     var: item
-#   loop: "{{ teams.json | json_query('[*].id') }}"
-
-# - debug:
-#     var: item
-#   loop: "{{ repos.json | json_query('[*].name') }}"
-
-# - debug:
-#     var: item
-#   loop: "{{ users.json | json_query('[*].name') }}"
