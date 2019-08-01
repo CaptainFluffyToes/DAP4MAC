@@ -39,6 +39,17 @@
 
 - name: create configmap
   block:
+    - name: Create jenkins namespace
+      k8s:
+        name: jenkins
+        api_version: v1
+        kind: Namespace
+        state: present
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+          
     - name: Get POD information for DAP instances
       k8s_facts:
         kind: pod
@@ -80,17 +91,6 @@
 
 - name: Set up jenkins
   block:
-    - name: Create jenkins namespace
-      k8s:
-        name: jenkins
-        api_version: v1
-        kind: Namespace
-        state: present
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-
     - name: Load Jenkins manifest
       k8s:
         state: present
