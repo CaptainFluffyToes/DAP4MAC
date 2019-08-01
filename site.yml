@@ -68,21 +68,13 @@
             prompt: "Enter SUDO password"
             echo: no
           register: sudo
-          when: hostsChecks.changed == true and ansible_become_pass is undefined and mode == "new"
-          no_log: yes
-
-        - name: Ask user for password to remove hosts
-          pause:
-            prompt: "Enter SUDO password"
-            echo: no
-          register: sudo
-          when: hostsChecks.changed == false and ansible_become_pass is undefined and mode == "delete"
-          no_log: yes
+          when: (hostsChecks.changed == true and ansible_become_pass is undefined and mode == "new") or (hostsChecks.changed == false and ansible_become_pass is undefined and mode == "delete")
+          no_log: no
 
         - name: Set ansible become password
           set_fact:
             ansible_become_pass: "{{ sudo.user_input }}"
-          no_log: yes
+          no_log: no
           when: (hostsChecks.changed == false and ansible_become_pass is undefined and mode == "delete") or (hostsChecks.changed == true and ansible_become_pass is undefined and mode == "new")
 
         - name: Add host entries for webpages
