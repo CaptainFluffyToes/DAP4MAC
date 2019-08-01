@@ -48,11 +48,6 @@
     default: "new"
     private: no
   
-  - name: "clusterFQDN"
-    prompt: 'Enter k8s cluster FQDN'
-    default: "k8scluster.local"
-    private: no
-  
   tasks:
     - name: Check host entries for webpages
       lineinfile:
@@ -160,7 +155,7 @@
         - "{{ ingressRoutes }}"
       when: mode == 'delete'
       become: yes
-      
+
     - name: Remove Cluster Items
       k8s:
         state: absent
