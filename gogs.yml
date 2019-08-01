@@ -14,6 +14,24 @@
   set_fact:
     gogsManifestStatus: "loadedManifest"
 
+- name: Check to see if config map already exists
+  k8s_facts:
+    kind: ConfigMap
+    namespace: gogs
+    name: k8s-app-ssl
+  register: gogsConfigMap
+  ignore_errors: yes
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "configured"
+  when: gogsConfigMap.resources[0] is defined
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "unconfigured"
+  when: gogsConfigMap.resources[0] is undefined
+
 - name: Get SSL certificate
   block:
     - name: Get POD information for DAP instances
@@ -49,7 +67,7 @@
       file:
         state: absent
         path: "{{ playbook_dir }}/files/ssl.pem"
-  when: gogsManifestStatus == "loadedManifest"
+  when: sslConfigMap == "unconfigured"
 
 - name: Check that gogs initial webpage is up.
   uri:
