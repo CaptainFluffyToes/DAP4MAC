@@ -63,7 +63,7 @@
           loop_control:
             loop_var: hostsDNS
 
-        - name: Ask user for password to add hosts
+        - name: Ask user for password if modification is needed
           pause:
             prompt: "Enter SUDO password"
             echo: no
@@ -144,22 +144,6 @@
           set_fact:
             demoStage: "demoToolsConfigured"
       when: demoStage == "dapConfigured"
-
-    - name: Ask user for password for removal of hosts
-      pause:
-        prompt: "Enter SUDO password"
-        echo: no
-      register: sudo
-      when: hostsChecks.changed == false and ansible_become_pass is undefined and mode == 'delete'
-      no_log: yes
-
-    - name: Set ansible become password for removal of hosts
-      set_fact:
-        ansible_become_pass: "{{ sudo.user_input }}"
-      no_log: yes
-      when: hostsChecks.changed == false and mode == "delete"
-
-
 
     - name: Remove Cluster Items
       k8s:
