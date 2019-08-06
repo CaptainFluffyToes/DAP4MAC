@@ -65,6 +65,7 @@ spec:
       labels:
         role: access
     spec:
+      serviceAccountName: conjur-cluster
       volumes:
       - name: seed
         configMap:
