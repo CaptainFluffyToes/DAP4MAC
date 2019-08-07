@@ -33,7 +33,7 @@
     body_format: json
     validate_certs: no
     method: GET
-    status_code: 200, 404
+    status_code: 200, 404, -1
   register: dapSourceStatus
 
 - name: Set DAP configuration
@@ -44,7 +44,7 @@
 - name: Set DAP configuration
   set_fact:
     dapSourceConfig: unconfigured
-  when: dapSourceStatus.status == 404
+  when: dapSourceStatus.status == 404 or dapSourceStatus.status == -1
 
 - name: Perform configuration tasks
   block:
