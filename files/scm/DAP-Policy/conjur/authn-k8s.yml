@@ -3,8 +3,6 @@
   body:
   - !webservice
   
-  - !layer
-  
   - !variable ca/key
   
   - !variable ca/cert
@@ -47,8 +45,6 @@
   body:
   - !webservice
   
-  - !layer
-
   - !variable ca/key
   
   - !variable ca/cert
