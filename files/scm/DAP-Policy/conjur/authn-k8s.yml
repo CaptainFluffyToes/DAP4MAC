@@ -65,6 +65,12 @@
           kubernetes/authentication-container-name: authenticator
           openshift: "true"
           
+      - !host
+        id: jenkins/*/*
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+          
     - !grant
       role: !layer
       members: *authenticated-resources-okd
