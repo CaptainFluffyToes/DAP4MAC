@@ -45,7 +45,7 @@ metadata:
   name: seed
   namespace: dap
 data:
-  backup.tar: ''
+  seed.tar: ''
 
 ---
 apiVersion: apps/v1
