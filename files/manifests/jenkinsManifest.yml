@@ -15,7 +15,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: master
+  name: ci
   namespace: jenkins
   labels:
     app: ci
@@ -31,7 +31,7 @@ spec:
     spec:
       serviceAccountName: jenkins-account
       containers:
-      - name: jenkins-master
+      - name: jenkins
         imagePullPolicy: IfNotPresent
         image: jenkins/jenkins
         ports:
