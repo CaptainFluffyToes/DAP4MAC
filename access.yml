@@ -1,4 +1,74 @@
 ---
+- name: Check to see if config map already exists
+  k8s_facts:
+    kind: ConfigMap
+    namespace: dap
+    name: k8s-app-ssl
+  register: dapConfigMap
+  ignore_errors: yes
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "configured"
+  when: dapConfigMap.resources[0] is defined
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "unconfigured"
+  when: dapConfigMap.resources[0] is undefined
+
+- name: create configmap
+  block:
+    - name: Create dap namespace
+      k8s:
+        name: dap
+        api_version: v1
+        kind: Namespace
+        state: present
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+          
+    - name: Get POD information for DAP instances
+      k8s_facts:
+        kind: pod
+        namespace: dap
+        label_selectors:
+          - role = source
+      register: dappod
+      until: dappod.resources[0].status.containerStatuses[0].ready == true
+      retries: 60
+      delay: 2
+
+    - name: Configure Variable with pod name
+      set_fact:
+        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+
+    - name: Get SSL cert
+      shell: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- cat /opt/conjur/etc/ssl/{{dapSourceService}}.pem 
+      register: ssl
+
+    - name: save SSL cert
+      local_action: copy content={{ ssl.stdout}} dest={{ playbook_dir }}/files/ssl.pem
+
+    - name: replace SSL cert config map
+      shell: |
+        kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem
+      with_items:
+        - dap
+
+    - name: Delete ssl.pem file
+      file:
+        state: absent
+        path: "{{ playbook_dir }}/files/ssl.pem"
+
+    - name: Set status of configmap
+      set_fact:
+        sslConfigMap: "configured"
+  when: sslConfigMap == "unconfigured"
+
 - name: Load DAP access manifest
   k8s:
     state: present
@@ -10,82 +80,3 @@
   register: dapManifestStatus
   with_items:
     - dapAccessManifest
-
-- name: Get POD information for DAP access instance
-  k8s_facts:
-    kind: pod
-    namespace: dap
-    label_selectors:
-      - role = access
-  register: dapAccess
-  until: dapAccess.resources[0].status.containerStatuses[0].ready == true
-  retries: 60
-  delay: 2
-
-- name: Configure Variable with pod name
-  set_fact:
-    accessPodName: "{{ dapAccess.resources[0].metadata.name }}"
-
-- name: Check that access node is not already configured
-  shell: |
-    kubectl -n dap exec {{ accessPodName }} -i -- evoke role
-  register: accessNodeConfig
-
-- name: Configure follower when DAP instance is not configured
-  block:
-    - name: Get POD information for DAP source instance
-      k8s_facts:
-        kind: pod
-        namespace: dap
-        label_selectors:
-          - role = source
-      register: dapSource
-      until: dapSource.resources[0].status.containerStatuses[0].ready == true
-      retries: 60
-      delay: 2
-
-    - name: Configure Variable with pod name
-      set_fact:
-        sourcePodName: "{{ dapSource.resources[0].metadata.name }}"
-
-    - name: Create cert for Follower
-      shell: |
-        kubectl exec -n dap {{ sourcePodName }} -i -- evoke ca issue --force {{ dapAccessService }}
-
-    - name: Generate Seed
-      shell: |
-        kubectl exec -n dap {{ sourcePodName }} -i -- evoke seed follower {{ dapAccessService }}
-      register: seed
-
-    - name: save seed file
-      local_action: copy content={{ seed.stdout}} dest={{ playbook_dir }}/files/seed.tar
-
-    - name: replace seed file config map
-      shell: |
-        kubectl -n dap create configmap seed --from-file {{ playbook_dir }}/files/seed.tar -o yaml --dry-run | kubectl replace -f -
-
-    - name: Delete seed.tar file
-      file:
-        state: absent
-        path: "{{ playbook_dir }}/files/seed.tar"
-
-    - name: Check for seed file contents
-      shell: |
-        kubectl exec -n dap {{ accessPodName }} -i -- ls /seed
-      register: output
-      until: output.stdout == "seed.tar"
-      retries: 60
-      delay: 2
-
-    - name: Unpack seed
-      shell: |
-        kubectl exec -n dap {{ accessPodName }} -i -- evoke unpack seed /seed/seed.tar
-
-    - name: Configure Access node
-      shell: |
-        kubectl exec -n dap {{ accessPodName }} -i -- evoke configure follower
-
-    - name: Set status of access node
-      set_fact:
-        accessNodeConfig: "configured"
-  when: accessNodeConfig.stdout == 'blank'
