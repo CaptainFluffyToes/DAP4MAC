@@ -112,9 +112,7 @@
         body: "{{lookup('file', '{{ playbook_dir }}/files/scm/DAP-Policy/{{ policy_item }}.yml') }}"
       with_items:
         - root
-        - conjur/authn-k8s
-        - jenkins
-        - resources
+        - conjur
       loop_control:
         loop_var: policy_item
     

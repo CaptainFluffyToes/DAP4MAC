@@ -1,5 +1,5 @@
 - !policy
-  id: k8s-follower
+  id: authn-k8s/k8s-follower
   body:
   - !webservice
   
@@ -25,12 +25,6 @@
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
 
-      - !host
-        id: gogs/*/*
-        annotations:
-          kubernetes/authentication-container-name: authenticator
-          kubernetes: "true"
-
     - !grant
       role: !layer
       members: *authenticated-resources-k8s
@@ -41,7 +35,7 @@
     role: !layer apps
 
 - !policy
-  id: okd-follower
+  id: authn-k8s/okd-follower
   body:
   - !webservice
   
@@ -75,3 +69,17 @@
     resource: !webservice
     privilege: [ read, authenticate ]
     role: !layer apps
+
+- !policy
+  id: seed-generation
+  body:
+  - !webservice
+  - !layer consumers
+  - !permit
+    role: !layer consumers
+    privilege: [ "execute" ]
+    resource: !webservice
+
+- !grant
+  role: !layer seed-generation/consumers
+  member: !host /conjur/authn-k8s/k8s-follower/apps/dap/service_account/conjur-cluster
