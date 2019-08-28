@@ -92,6 +92,32 @@
     
     - name: Load cluster tools and set demostage status
       block:
+        - name: Pull down metrics server from github
+          git:
+            clone: yes
+            repo: https://github.com/kubernetes-incubator/metrics-server.git
+            dest: "{{ playbook_dir }}/files/manifests/metrics"
+
+        - name: Find all manifests in metrics directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/metrics/deploy/1.8+/"
+            file_type: file
+          register: metrics
+
+        - name: Get list paths for all manifests
+          set_fact:
+            metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
+        
+        - name: Load metrics server
+          k8s:
+            state: present
+            src: "{{ item }}"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+          loop: "{{ metricsManifests }}"
+
         - name: Load Cluster tools manifests
           k8s:
             state: present
@@ -160,27 +186,54 @@
         - "{{ ingressRoutes }}"
       when: mode == 'delete'
       become: yes
-      
-    - name: Remove Cluster Items
-      k8s:
-        state: absent
-        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-      with_items:
-        - dashboardManifest
-        - nginxingressManifest
-        - dashboardIngressManifest
-        - weaveManifest
-        - weaveIngressManifest
-        - dapSourceManifest
-        - dapAccessManifest
-        - gogsManifest
-        - jenkinsManifest
+
+    - name: Remove cluster items
+      block:
+        - name: Remove Cluster Items
+          k8s:
+            state: absent
+            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+          with_items:
+            - dashboardManifest
+            - nginxingressManifest
+            - dashboardIngressManifest
+            - weaveManifest
+            - weaveIngressManifest
+            - dapSourceManifest
+            - dapAccessManifest
+            - gogsManifest
+            - jenkinsManifest
+        - name: Pull down metrics server from github
+          git:
+            clone: yes
+            repo: https://github.com/kubernetes-incubator/metrics-server.git
+            dest: "{{ playbook_dir }}/files/manifests/metrics"
+
+        - name: Find all manifests in metrics directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/metrics/deploy/1.8+/"
+            file_type: file
+          register: metrics
+
+        - name: Get list paths for all manifests
+          set_fact:
+            metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
+        
+        - name: Load metrics server
+          k8s:
+            state: absent
+            src: "{{ item }}"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+          loop: "{{ metricsManifests }}"
       when: mode == 'delete'
-  
+      
   vars:
     adminPass: 'Cyberark1'
     account: 'cyberark'
