@@ -153,3 +153,18 @@ spec:
   selector:
     role: access
   type: ClusterIP
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: follower-scaler
+  namespace: dap
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: dap-access-node
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 50
