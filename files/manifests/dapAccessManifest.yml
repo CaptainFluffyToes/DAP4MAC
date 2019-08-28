@@ -39,15 +39,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 
 ---
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: seed
-  namespace: dap
-data:
-  seed.tar: ''
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -67,16 +58,61 @@ spec:
     spec:
       serviceAccountName: conjur-cluster
       volumes:
-      - name: seed
-        configMap:
-          name: seed
+      - name: seedfile
+        emptyDir:
+          medium: Memory
+      - name: conjur-token
+        emptyDir:
+          medium: Memory
+      initContainers:
+      - name: authenticator
+        image: captainfluffytoes/seed-fetcher:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CONJUR_SEED_FILE_URL
+            value: https://source.dap.svc.cluster.local/configuration/cyberark/seed/follower
+          - name: SEEDFILE_DIR
+            value: /tmp/seedfile
+          - name: FOLLOWER_HOSTNAME
+            value: access
+          - name: AUTHENTICATOR_ID
+            value: k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_AUTHN_LOGIN
+            value: "host/conjur/authn-k8s/k8s-follower/apps/dap/service_account/conjur-cluster"
+        volumeMounts:
+          - name: seedfile
+            mountPath: /tmp/seedfile
+          - name: conjur-token
+            mountPath: /run/conjur
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
         image: captainfluffytoes/dap:10.10
+        command: ["/tmp/seedfile/start-follower.sh"]
         env:
           - name: CONJUR_AUTHENTICATORS
             value: "authn-k8s/okd-follower,authn-k8s/k8s-follower"
+          - name: SEEDFILE_DIR
+            value: /tmp/seedfile
         ports:
           - containerPort: 443
             protocol: TCP
@@ -84,9 +120,17 @@ spec:
             protocol: TCP
           - containerPort: 1999
             protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
         volumeMounts:
-          - mountPath: /seed
-            name: seed
+          - name: seedfile
+            mountPath: /tmp/seedfile
+            readOnly: true
         resources:
           requests:
             memory: "1Gi"
