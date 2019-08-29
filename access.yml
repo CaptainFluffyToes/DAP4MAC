@@ -55,9 +55,11 @@
 
     - name: replace SSL cert config map
       shell: |
-        kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem
+        kubectl -n {{ namespace }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem
       with_items:
         - dap
+      loop_control:
+        loop_var: namespace
 
     - name: Delete ssl.pem file
       file:
@@ -72,7 +74,7 @@
 - name: Load DAP access manifest
   k8s:
     state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    src: "{{ playbook_dir }}/files/manifests/dap/{{ manifests }}.yml"
     wait: yes
     wait_condition:
       reason: completed
@@ -81,3 +83,5 @@
   register: dapManifestStatus
   with_items:
     - dapAccessManifest
+  loop_control:
+    loop_var: manifests

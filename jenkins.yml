@@ -18,21 +18,3 @@
   set_fact:
     jenkinsStatus: "unconfigured"
   when: jenkinsWeb.status == 404
-
-- name: Set up jenkins
-  block:
-    - name: Load Jenkins manifest
-      k8s:
-        state: present
-        src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-      with_items:
-        - jenkinsManifest
-
-    - name: Set jenkins status
-      set_fact:
-        jenkinsStatus: "initialConfigured"
-  when: jenkinsStatus == "unconfigured" and sslConfigMap == "configured"

@@ -2,7 +2,7 @@
 - name: Load DAP source manifest
   k8s:
     state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    src: "{{ playbook_dir }}/files/manifests/dap/{{ dapLoad }}.yml"
     wait: yes
     wait_condition:
       reason: completed
@@ -10,6 +10,8 @@
   register: dapManifestStatus
   with_items:
     - dapSourceManifest
+  loop_control:
+    loop_var: dapLoad
 
 - name: Get POD information for DAP instances
   k8s_facts:

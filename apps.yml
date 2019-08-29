@@ -69,32 +69,36 @@
         sslConfigMap: "configured"
   when: sslConfigMap == "unconfigured"
 
-- name: Load clusterolebinding
-  k8s:
-    state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-    wait: yes
-    wait_condition:
-      reason: completed
-      status: "True"
-  with_items:
-    - appsRoleBindingManifest
-
-- name: Load demoapps
-  k8s:
-    state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-    wait: yes
-    wait_condition:
-      reason: completed
-      status: "True"
-  with_items:
-    - secretlessManifest
-    - summonManifest
-    - curlManifest
+- name: load apps when ssl is configured
+  block:
+    - name: find all demo app manifests
+      find:
+        paths: "{{ playbook_dir }}/files/manifests/demoapps/"
+        file_type: file
+      register: demoApps
     
+    - name: turn demoapps into a list
+      set_fact:
+        demoAppsManifests: "{{ demoApps.files | map(attribute='path') | list }}"
+
+    - name: Load demoapp manifests
+      k8s:
+        state: present
+        src: "{{ appManifest }}"
+        wait: yes
+        wait_condition:
+          reason: completed
+          status: "True"
+      loop: "{{ demoAppsManifests }}"
+      loop_control:
+        loop_var: appManifest
+      
+  when: sslConfigMap == "configured"
+
 - name: Configure demo tools
-  include_tasks: "{{ item }}.yml"
-  loop:
+  include_tasks: "{{ task_list }}.yml"
+  with_items:
     - jenkins
     - gogs
+  loop_control:
+    loop_var: task_list

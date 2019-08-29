@@ -96,43 +96,50 @@
           git:
             clone: yes
             repo: https://github.com/kubernetes-incubator/metrics-server.git
-            dest: "{{ playbook_dir }}/files/manifests/metrics"
+            dest: "{{ playbook_dir }}/files/manifests/tools/metrics"
 
         - name: Find all manifests in metrics directory
           find:
-            paths: "{{ playbook_dir }}/files/manifests/metrics/deploy/1.8+/"
+            paths: "{{ playbook_dir }}/files/manifests/tools/metrics/deploy/1.8+/"
             file_type: file
           register: metrics
 
-        - name: Get list paths for all manifests
+        - name: Get list paths for all metrics manifests
           set_fact:
             metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
         
         - name: Load metrics server
           k8s:
             state: present
-            src: "{{ item }}"
+            src: "{{ manifestLoad }}"
             wait: yes
             wait_condition:
               reason: completed
               status: "True"
+            wait_timeout: 360
           loop: "{{ metricsManifests }}"
+          loop_control:
+            loop_var: manifestLoad
+
+        - name: Find all manifests in manifests/tools directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/tools/"
+            file_type: file
+          register: toolManifests
 
         - name: Load Cluster tools manifests
           k8s:
             state: present
-            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+            src: "{{ toolsLoad }}"
             wait: yes
             wait_condition:
               reason: completed
               status: "True"
+            wait_timeout: 360
           register: demoStage
-          with_items:
-            - dashboardManifest
-            - nginxingressManifest
-            - dashboardIngressManifest
-            - weaveManifest
-            - weaveIngressManifest
+          loop: "{{ toolManifests.files | map(attribute='path') | list }}"
+          loop_control:
+            loop_var: toolsLoad
 
         - name: Set demo status
           set_fact:
@@ -142,10 +149,12 @@
     - name: Configure DAP source and access. Set demo status
       block:
         - name: Configure DAP
-          include_tasks: "{{ item }}.yml"
+          include_tasks: "{{ dapStage }}.yml"
           loop:
             - source
             - access
+          loop_control:
+            loop_var: dapStage
             
         - name: Set demo stage status
           set_fact:
@@ -155,9 +164,11 @@
     - name: Configure demo tools and set status
       block:
         - name: Configure demo tools
-          include_tasks: "{{ item }}.yml"
-          with_items:
+          include_tasks: "{{ tasks }}.yml"
+          loop:
             - apps
+          loop_control:
+            loop_var: tasks
 
         - name: Set demo stage status
           set_fact:

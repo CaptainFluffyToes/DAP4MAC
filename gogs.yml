@@ -1,19 +1,4 @@
 ---
-- name: Load gogs manifest
-  k8s:
-    state: present
-    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-    wait: yes
-    wait_condition:
-      reason: completed
-      status: "True"
-  with_items:
-    - gogsManifest
-
-- name: Set gogs status
-  set_fact:
-    gogsManifestStatus: "loadedManifest"
-
 - name: Check that gogs initial webpage is up.
   uri:
     url: "http://{{ gogsIngressRoute }}/install"
