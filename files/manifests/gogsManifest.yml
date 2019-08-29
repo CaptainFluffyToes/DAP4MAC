@@ -54,7 +54,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: admin-page
+  name: gogs-page
   namespace: demoapps
 spec:
   ports:
@@ -84,5 +84,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: admin-page
+          serviceName: gogs-page
           servicePort: 80
