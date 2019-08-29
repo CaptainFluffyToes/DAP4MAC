@@ -1,0 +1,100 @@
+---
+- name: Create Apps namespace
+  k8s:
+    name: demoapps
+    api_version: v1
+    kind: Namespace
+    state: present
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+
+- name: Check to see if config map already exists
+  k8s_facts:
+    kind: ConfigMap
+    namespace: demoapps
+    name: k8s-app-ssl
+  register: appsConfigMap
+  ignore_errors: yes
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "configured"
+  when: appsConfigMap.resources[0] is defined
+
+- name: Set status of configmap
+  set_fact:
+    sslConfigMap: "unconfigured"
+  when: appsConfigMap.resources[0] is undefined
+
+- name: create configmap
+  block:
+    - name: Get POD information for DAP instances
+      k8s_facts:
+        kind: pod
+        namespace: dap
+        label_selectors:
+          - role = source
+      register: dappod
+      until: dappod.resources[0].status.containerStatuses[0].ready == true
+      retries: 60
+      delay: 2
+
+    - name: Configure Variable with pod name
+      set_fact:
+        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
+
+    - name: Get SSL cert
+      shell: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- cat /opt/conjur/etc/ssl/{{dapSourceService}}.pem 
+      register: ssl
+
+    - name: save SSL cert
+      local_action: copy content={{ ssl.stdout}} dest={{ playbook_dir }}/files/ssl.pem
+
+    - name: replace SSL cert config map
+      shell: |
+        kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem
+      with_items:
+        - demoapps
+
+    - name: Delete ssl.pem file
+      file:
+        state: absent
+        path: "{{ playbook_dir }}/files/ssl.pem"
+
+    - name: Set status of configmap
+      set_fact:
+        sslConfigMap: "configured"
+  when: sslConfigMap == "unconfigured"
+
+- name: Load clusterolebinding
+  k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+  with_items:
+    - appsRoleBindingManifest
+
+- name: Load demoapps
+  k8s:
+    state: present
+    src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+  with_items:
+    - secretlessManifest
+    - summonManifest
+    - curlManifest
+    
+- name: Configure demo tools
+  include_tasks: "{{ item }}.yml"
+  loop:
+    - jenkins
+    - gogs

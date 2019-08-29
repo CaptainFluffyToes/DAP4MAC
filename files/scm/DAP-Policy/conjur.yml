@@ -20,7 +20,25 @@
           kubernetes: "true"
 
       - !host
-        id: jenkins/*/*
+        id: demoapps/deployment/jenkins
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+
+      - !host
+        id: demoapps/deployment/secretless
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+
+      - !host
+        id: demoapps/deployment/summon
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+
+      - !host
+        id: demoapps/deployment/curl
         annotations:
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
@@ -56,11 +74,29 @@
           openshift: "true"
           
       - !host
-        id: jenkins/*/*
+        id: demoapps/deployment/jenkins
         annotations:
           kubernetes/authentication-container-name: authenticator
-          kubernetes: "true"
-          
+          openshift: "true"
+
+      - !host
+        id: demoapps/deployment/secretless
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+
+      - !host
+        id: demoapps/deployment/summon
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+
+      - !host
+        id: demoapps/deployment/curl
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+
     - !grant
       role: !layer
       members: *authenticated-resources-okd

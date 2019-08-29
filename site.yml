@@ -19,7 +19,7 @@
       until: result.status == 200
       retries: 5
       delay: 2
-      with_items:
+      loop:
       - { url: 'https://hub.docker.com' }
       - { url: 'https://github.com' }
 
@@ -143,9 +143,10 @@
       block:
         - name: Configure DAP
           include_tasks: "{{ item }}.yml"
-          with_items:
+          loop:
             - source
             - access
+            
         - name: Set demo stage status
           set_fact:
             demoStage: "dapConfigured"
@@ -156,8 +157,8 @@
         - name: Configure demo tools
           include_tasks: "{{ item }}.yml"
           with_items:
-            - gogs
-            - jenkins
+            - apps
+
         - name: Set demo stage status
           set_fact:
             demoStage: "demoToolsConfigured"
@@ -189,26 +190,6 @@
 
     - name: Remove cluster items
       block:
-        - name: Remove Cluster Items
-          k8s:
-            state: absent
-            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
-            wait: yes
-            wait_condition:
-              reason: completed
-              status: "True"
-            wait_timeout: 360
-          with_items:
-            - dashboardManifest
-            - nginxingressManifest
-            - dashboardIngressManifest
-            - weaveManifest
-            - weaveIngressManifest
-            - dapSourceManifest
-            - dapAccessManifest
-            - gogsManifest
-            - jenkinsManifest
-
         - name: Pull down metrics server from github
           git:
             clone: yes
@@ -224,22 +205,33 @@
         - name: Get list paths for all manifests
           set_fact:
             metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
-        
-        - name: Remove metrics server
+
+        - name: Remove Cluster Items
           k8s:
             state: absent
-            src: "{{ item }}"
+            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
             wait: yes
             wait_condition:
               reason: completed
               status: "True"
             wait_timeout: 360
-          loop: "{{ metricsManifests }}"
+          loop:
+            - dashboardManifest
+            - nginxingressManifest
+            - dashboardIngressManifest
+            - weaveManifest
+            - weaveIngressManifest
+            - dapSourceManifest
+            - dapAccessManifest
+            - gogsManifest
+            - jenkinsManifest
+            - appsRoleBindingManifest
+            - "{{ metricsManifests }}"
 
         - name: remove metrics download
           file:
             state: absent
-            path: "{{ playbook_dir  }}/files/manifest/metric/"
+            path: "{{ playbook_dir  }}/files/manifest/metrics/"
       when: mode == 'delete'
 
   vars:

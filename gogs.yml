@@ -14,61 +14,6 @@
   set_fact:
     gogsManifestStatus: "loadedManifest"
 
-- name: Check to see if config map already exists
-  k8s_facts:
-    kind: ConfigMap
-    namespace: gogs
-    name: k8s-app-ssl
-  register: gogsConfigMap
-  ignore_errors: yes
-
-- name: Set status of configmap
-  set_fact:
-    sslConfigMap: "configured"
-  when: gogsConfigMap.resources[0] is defined
-
-- name: Set status of configmap
-  set_fact:
-    sslConfigMap: "unconfigured"
-  when: gogsConfigMap.resources[0] is undefined
-
-- name: Get SSL certificate
-  block:
-    - name: Get POD information for DAP instances
-      k8s_facts:
-        kind: pod
-        namespace: dap
-        label_selectors:
-          - role = source
-      register: dappod
-      until: dappod.resources[0].status.containerStatuses[0].ready == true
-      retries: 60
-      delay: 2
-
-    - name: Configure Variable with pod name
-      set_fact:
-        sourcePodName: "{{ dappod.resources[0].metadata.name }}"
-
-    - name: Get SSL cert
-      shell: |
-        kubectl exec -n dap {{ sourcePodName }} -i -- cat /opt/conjur/etc/ssl/{{dapSourceService}}.pem 
-      register: ssl
-
-    - name: save SSL cert
-      local_action: copy content={{ ssl.stdout}} dest={{ playbook_dir }}/files/ssl.pem
-
-    - name: replace seed file config map
-      shell: |
-        kubectl -n {{ item }} create configmap k8s-app-ssl --from-file=ssl-certificate={{ playbook_dir }}/files/ssl.pem -o yaml --dry-run | kubectl replace -f -
-      with_items:
-        - gogs
-
-    - name: Delete ssl.pem file
-      file:
-        state: absent
-        path: "{{ playbook_dir }}/files/ssl.pem"
-  when: sslConfigMap == "unconfigured"
-
 - name: Check that gogs initial webpage is up.
   uri:
     url: "http://{{ gogsIngressRoute }}/install"
@@ -114,7 +59,6 @@
         gogsConfigState: "configured"
       when: gogs_setup.content != "Gogs is a painless self-hosted Git service"
   when: gogsConfigState == "initialConfigured"
-
 
 - name: gogs initial configuration
   block:
