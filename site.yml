@@ -197,6 +197,7 @@
             wait_condition:
               reason: completed
               status: "True"
+            wait_timeout: 360
           with_items:
             - dashboardManifest
             - nginxingressManifest
@@ -207,6 +208,7 @@
             - dapAccessManifest
             - gogsManifest
             - jenkinsManifest
+
         - name: Pull down metrics server from github
           git:
             clone: yes
@@ -223,7 +225,7 @@
           set_fact:
             metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
         
-        - name: Load metrics server
+        - name: Remove metrics server
           k8s:
             state: absent
             src: "{{ item }}"
@@ -231,9 +233,15 @@
             wait_condition:
               reason: completed
               status: "True"
+            wait_timeout: 360
           loop: "{{ metricsManifests }}"
+
+        - name: remove metrics download
+          file:
+            state: absent
+            path: "{{ playbook_dir  }}/files/manifest/metric/"
       when: mode == 'delete'
-      
+
   vars:
     adminPass: 'Cyberark1'
     account: 'cyberark'
