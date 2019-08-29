@@ -206,6 +206,16 @@
           set_fact:
             metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
 
+        - name: remove metrics server
+          k8s:
+            state: absent
+            src: "{{ item }}"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+          loop: "{{ metricsManifests }}"
+
         - name: Remove Cluster Items
           k8s:
             state: absent
@@ -221,12 +231,17 @@
             - dashboardIngressManifest
             - weaveManifest
             - weaveIngressManifest
-            - dapSourceManifest
-            - dapAccessManifest
-            - gogsManifest
-            - jenkinsManifest
-            - appsRoleBindingManifest
-            - "{{ metricsManifests }}"
+
+        - name: Remove Apps namespace
+          k8s:
+            name: demoapps
+            api_version: v1
+            kind: Namespace
+            state: absent
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
 
         - name: remove metrics download
           file:
