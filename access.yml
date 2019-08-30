@@ -19,17 +19,6 @@
 
 - name: create configmap
   block:
-    - name: Create dap namespace
-      k8s:
-        name: dap
-        api_version: v1
-        kind: Namespace
-        state: present
-        wait: yes
-        wait_condition:
-          reason: completed
-          status: "True"
-          
     - name: Get POD information for DAP instances
       k8s_facts:
         kind: pod

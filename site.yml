@@ -47,6 +47,11 @@
     prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
     default: "new"
     private: no
+
+  - name: "ingressEnable"
+    prompt: 'Should cluster ingress be enabled for all apps?'
+    default: "yes"
+    private: no
   
   - name: "clusterFQDN"
     prompt: 'Enter k8s cluster FQDN'
@@ -146,6 +151,28 @@
             demoStage: "toolsLoaded"
       when: mode == 'new'
 
+    - name: enable ingress and load tool ingresses
+      block:
+        - name: Find all manifests in manifests/ingress directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/ingress/"
+            file_type: file
+          register: ingressManifests
+
+        - name: Load Cluster tools ingress manifests
+          k8s:
+            state: present
+            src: "{{ ingressLoad }}"
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+            wait_timeout: 360
+          loop: "{{ ingressManifests.files | map(attribute='path') | list }}"
+          loop_control:
+            loop_var: ingressLoad
+      when: ingressEnable == "yes" and mode == "new"
+
     - name: Configure DAP source and access. Set demo status
       block:
         - name: Configure DAP
@@ -159,7 +186,7 @@
         - name: Set demo stage status
           set_fact:
             demoStage: "dapConfigured"
-      when: demoStage == "toolsLoaded"
+      when: demoStage == "toolsLoaded" and mode == "new"
    
     - name: Configure demo tools and set status
       block:
@@ -173,49 +200,59 @@
         - name: Set demo stage status
           set_fact:
             demoStage: "demoToolsConfigured"
-      when: demoStage == "dapConfigured"
+      when: demoStage == "dapConfigured" and mode == "new"
 
-    - name: Ask user for password for removal of hosts
-      pause:
-        prompt: "Enter SUDO password"
-        echo: no
-      register: sudo
-      when: hostsChecks.changed == false and ansible_become_pass is undefined and mode == 'delete'
-      no_log: yes
-
-    - name: Set ansible become password for removal of hosts
-      set_fact:
-        ansible_become_pass: "{{ sudo.user_input }}"
-      no_log: yes
-      when: hostsChecks.changed == false and mode == "delete"
-
-    - name: Remove host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ item }}
-        state: absent
-      with_items:
-        - "{{ ingressRoutes }}"
-      when: mode == 'delete'
-      become: yes
-
-    - name: Remove cluster items
+    - name: Clean environment
       block:
+        - name: Ask user for password for removal of hosts
+          pause:
+            prompt: "Enter SUDO password"
+            echo: no
+          register: sudo
+          when: hostsChecks.changed == false and ansible_become_pass is undefined
+          no_log: yes
+
+        - name: Set ansible become password for removal of hosts
+          set_fact:
+            ansible_become_pass: "{{ sudo.user_input }}"
+          no_log: yes
+          when: hostsChecks.changed == false
+
+        - name: Remove host entries for webpages
+          lineinfile:
+            path: /etc/hosts
+            line: 127.0.0.1 {{ item }}
+            state: absent
+          with_items:
+            - "{{ ingressRoutes }}"
+          become: yes
+
+        - name: Remove dap and demoapps namespacenamespace
+          k8s:
+            name: "{{ item }}"
+            api_version: v1
+            kind: Namespace
+            state: absent
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+            wait_timeout: 360
+          with_items:
+            - dap
+            - demoapps
+
         - name: Pull down metrics server from github
           git:
             clone: yes
             repo: https://github.com/kubernetes-incubator/metrics-server.git
-            dest: "{{ playbook_dir }}/files/manifests/metrics"
+            dest: "{{ playbook_dir }}/files/manifests/tools/metrics"
 
         - name: Find all manifests in metrics directory
           find:
-            paths: "{{ playbook_dir }}/files/manifests/metrics/deploy/1.8+/"
+            paths: "{{ playbook_dir }}/files/manifests/tools/metrics/deploy/1.8+/"
             file_type: file
           register: metrics
-
-        - name: Get list paths for all manifests
-          set_fact:
-            metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
 
         - name: remove metrics server
           k8s:
@@ -225,40 +262,47 @@
             wait_condition:
               reason: completed
               status: "True"
-          loop: "{{ metricsManifests }}"
+          loop: "{{ metrics.files | map(attribute='path') | list }}"
 
-        - name: Remove Cluster Items
+        - name: Find all manifests in ingress directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/ingress/"
+            file_type: file
+          register: ingress
+
+        - name: Remove tool ingress
           k8s:
             state: absent
-            src: "{{ playbook_dir }}/files/manifests/{{ item }}.yml"
+            src: "{{ item }}"
             wait: yes
             wait_condition:
               reason: completed
               status: "True"
             wait_timeout: 360
-          loop:
-            - dashboardManifest
-            - nginxingressManifest
-            - dashboardIngressManifest
-            - weaveManifest
-            - weaveIngressManifest
+          loop: "{{ ingress.files | map(attribute='path') | list }}"
 
-        - name: Remove Apps namespace
+        - name: Find all manifests in tools directory
+          find:
+            paths: "{{ playbook_dir }}/files/manifests/tools/"
+            file_type: file
+          register: tools
+
+        - name: Remove Cluster tools
           k8s:
-            name: demoapps
-            api_version: v1
-            kind: Namespace
             state: absent
+            src: "{{ item }}"
             wait: yes
             wait_condition:
               reason: completed
               status: "True"
+            wait_timeout: 360
+          loop: "{{ tools.files | map(attribute='path') | list }}"
 
         - name: remove metrics download
           file:
             state: absent
-            path: "{{ playbook_dir  }}/files/manifest/metrics/"
-      when: mode == 'delete'
+            path: "{{ playbook_dir  }}/files/manifest/tools/metrics"
+      when: mode == "delete"
 
   vars:
     adminPass: 'Cyberark1'

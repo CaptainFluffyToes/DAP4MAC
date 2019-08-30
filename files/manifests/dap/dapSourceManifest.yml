@@ -1,13 +1,4 @@
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dap
-  labels:
-    vendor: cyberark
-    app: dap
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

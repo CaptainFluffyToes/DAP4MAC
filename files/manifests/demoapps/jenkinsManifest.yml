@@ -1,5 +1,11 @@
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: demoapps
+
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jenkins-account
@@ -29,7 +35,7 @@ spec:
       shareProcessNamespace: true
       containers:
       - name: jenkins
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         image: jenkins/jenkins
         ports:
           - containerPort: 443
