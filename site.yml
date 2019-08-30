@@ -301,7 +301,7 @@
         - name: remove metrics download
           file:
             state: absent
-            path: "{{ playbook_dir  }}/files/manifest/tools/metrics"
+            path: "{{ playbook_dir }}/files/manifests/tools/metrics/"
       when: mode == "delete"
 
   vars:
