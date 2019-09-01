@@ -36,3 +36,7 @@
 - !policy
   id: conjur
   owner: !group /devops
+
+- !policy
+  id: secrets
+  owner: !group /devops

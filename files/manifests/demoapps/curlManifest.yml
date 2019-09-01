@@ -62,6 +62,28 @@ spec:
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token
+      - name: simpleapp
+        image: captainfluffytoes/curl_retrieve:latest
+        imagePullPolicy: Always
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: SECRET
+            value: secrets/backend/postgres_pwd
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
       volumes:
         - name: conjur-access-token
           emptyDir:

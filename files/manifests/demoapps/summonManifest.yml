@@ -59,6 +59,25 @@ spec:
               configMapKeyRef:
                 name: k8s-app-ssl
                 key: ssl-certificate
+      - name: summonapp
+        image: captainfluffytoes/summon_retrieve:latest
+        imagePullPolicy: Always
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_AUTHN_TOKEN_FILE
+            value: "/run/conjur/access-token"
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token

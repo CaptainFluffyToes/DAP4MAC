@@ -127,8 +127,27 @@
       with_items:
         - root
         - conjur
+        - secrets
       loop_control:
         loop_var: policy_item
+
+    - set_fact:
+        pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+    - name: Load Secret secrets/backend/postgres_pwd
+      uri:
+        url: https://{{dapIngressRoute}}/secrets/{{ dapAccount }}/variable/secrets/backend/postgres_pwd
+        status_code: 201
+        return_content: yes
+        method: POST
+        headers:
+          Authorization: Token token="{{ dapTokenFormatted }}"
+        validate_certs: no
+        body: "{{ secret_item }}"
+      with_items:
+        - "{{ pass }}"
+      loop_control:
+        loop_var: secret_item
     
     - name: Set dap status
       set_fact:

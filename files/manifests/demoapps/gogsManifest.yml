@@ -1,4 +1,11 @@
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gogs-account
+  namespace: demoapps
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:

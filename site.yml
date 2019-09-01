@@ -209,14 +209,14 @@
             prompt: "Enter SUDO password"
             echo: no
           register: sudo
-          when: hostsChecks.changed == false and ansible_become_pass is undefined
+          when: hostsChecks.changed != true
           no_log: yes
 
         - name: Set ansible become password for removal of hosts
           set_fact:
             ansible_become_pass: "{{ sudo.user_input }}"
-          no_log: yes
-          when: hostsChecks.changed == false
+          # no_log: yes
+          when: hostsChecks.changed != true
 
         - name: Remove host entries for webpages
           lineinfile:
@@ -226,6 +226,7 @@
           with_items:
             - "{{ ingressRoutes }}"
           become: yes
+          when: hostsChecks.changed != true
 
         - name: Remove dap and demoapps namespacenamespace
           k8s:
