@@ -149,6 +149,17 @@
       loop_control:
         loop_var: secret_item
     
+    - name: Load Secret secrets/backend/postgres_user
+      uri:
+        url: https://{{dapIngressRoute}}/secrets/{{ dapAccount }}/variable/secrets/backend/postgres_user
+        status_code: 201
+        return_content: yes
+        method: POST
+        headers:
+          Authorization: Token token="{{ dapTokenFormatted }}"
+        validate_certs: no
+        body: "db_user"
+    
     - name: Set dap status
       set_fact:
         dapSourceConfig: policiesLoaded
