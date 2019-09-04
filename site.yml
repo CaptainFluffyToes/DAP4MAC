@@ -249,7 +249,7 @@
               reason: completed
               status: "True"
           loop: "{{ metrics.files | map(attribute='path') | list }}"
-          
+
         - name: Remove dap and demoapps namespacenamespace
           k8s:
             name: "{{ item }}"
