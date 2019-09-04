@@ -135,10 +135,6 @@
     #   set_fact:
     #     dap_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
 
-    - name: Create password for variable  
-      set_fact:
-        dap_pass: Cyberark1
-
     - name: Load Secret secrets/backend/postgres_pwd
       uri:
         url: https://{{dapIngressRoute}}/secrets/{{ dapAccount }}/variable/secrets/backend/postgres_pwd
@@ -148,11 +144,11 @@
         headers:
           Authorization: Token token="{{ dapTokenFormatted }}"
         validate_certs: no
-        body: "{{ secret_item }}"
-      with_items:
-        - "{{ dap_pass }}"
-      loop_control:
-        loop_var: secret_item
+        body: "Cyberark1"
+      # with_items:
+      #   - "{{ dap_pass }}"
+      # loop_control:
+      #   loop_var: secret_item
     
     - name: Load Secret secrets/backend/postgres_user
       uri:
