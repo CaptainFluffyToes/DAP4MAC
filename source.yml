@@ -131,9 +131,13 @@
       loop_control:
         loop_var: policy_item
 
+    # - name: Create password for variable  
+    #   set_fact:
+    #     dap_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
     - name: Create password for variable  
       set_fact:
-        dap_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+        dap_pass: Cyberark1
 
     - name: Load Secret secrets/backend/postgres_pwd
       uri:
