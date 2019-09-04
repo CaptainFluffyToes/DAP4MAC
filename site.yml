@@ -215,7 +215,7 @@
         - name: Set ansible become password for removal of hosts
           set_fact:
             ansible_become_pass: "{{ sudo.user_input }}"
-          # no_log: yes
+          no_log: yes
           when: hostsChecks.changed != true
 
         - name: Remove host entries for webpages
@@ -227,21 +227,6 @@
             - "{{ ingressRoutes }}"
           become: yes
           when: hostsChecks.changed != true
-
-        - name: Remove dap and demoapps namespacenamespace
-          k8s:
-            name: "{{ item }}"
-            api_version: v1
-            kind: Namespace
-            state: absent
-            wait: yes
-            wait_condition:
-              reason: completed
-              status: "True"
-            wait_timeout: 360
-          with_items:
-            - dap
-            - demoapps
 
         - name: Pull down metrics server from github
           git:
@@ -264,6 +249,21 @@
               reason: completed
               status: "True"
           loop: "{{ metrics.files | map(attribute='path') | list }}"
+          
+        - name: Remove dap and demoapps namespacenamespace
+          k8s:
+            name: "{{ item }}"
+            api_version: v1
+            kind: Namespace
+            state: absent
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+            wait_timeout: 360
+          with_items:
+            - dap
+            - demoapps
 
         - name: Find all manifests in ingress directory
           find:
