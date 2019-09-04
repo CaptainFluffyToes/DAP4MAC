@@ -28,7 +28,7 @@
       - !host
         id: demoapps/deployment/secretless
         annotations:
-          kubernetes/authentication-container-name: authenticator
+          kubernetes/authentication-container-name: secretless-broker
           kubernetes: "true"
 
       - !host
@@ -82,7 +82,7 @@
       - !host
         id: demoapps/deployment/secretless
         annotations:
-          kubernetes/authentication-container-name: authenticator
+          kubernetes/authentication-container-name: secretless-broker
           openshift: "true"
 
       - !host
