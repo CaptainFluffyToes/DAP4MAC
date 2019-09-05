@@ -30,7 +30,7 @@ spec:
       containers:
       - name: authenticator
         image: cyberark/conjur-authn-k8s-client
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: MY_POD_NAME
             valueFrom:
@@ -64,7 +64,7 @@ spec:
             name: conjur-access-token
       - name: simpleapp
         image: captainfluffytoes/curl_retrieve:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: CONJUR_APPLIANCE_URL
             value: https://access.dap.svc.cluster.local/api

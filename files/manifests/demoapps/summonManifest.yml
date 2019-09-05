@@ -27,10 +27,10 @@ spec:
     spec:
       serviceAccountName: summon-account
       shareProcessNamespace: true
-      containers:
+      initContainers:
       - name: authenticator
         image: cyberark/conjur-authn-k8s-client
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: MY_POD_NAME
             valueFrom:
@@ -46,6 +46,8 @@ spec:
                 fieldPath: status.podIP
           - name: CONJUR_APPLIANCE_URL
             value: https://access.dap.svc.cluster.local/api
+          - name: CONTAINER_MODE
+            value: init
           - name: CONJUR_AUTHN_URL
             value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
           - name: CONJUR_ACCOUNT
@@ -59,9 +61,13 @@ spec:
               configMapKeyRef:
                 name: k8s-app-ssl
                 key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      containers:
       - name: summonapp
         image: captainfluffytoes/summon_retrieve:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: CONJUR_APPLIANCE_URL
             value: https://access.dap.svc.cluster.local/api
