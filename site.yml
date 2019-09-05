@@ -243,9 +243,11 @@
         - name: Patch the MutatingWebhookConfiguration by setting caBundle with correct value from Kubernetes cluster
           shell: |
             cat mutatingwebhook.yaml | ./webhook-patch-ca-bundle.sh --namespace-selector-label cyberark-sidecar-injector --service cyberark-sidecar-injector --namespace injectors > mutatingwebhook-ca-bundle.yaml
-            rm -f mutatingwebhook.yaml
-          args:
-            chdir: "{{ playbook_dir }}/files/manifests/sidecarInjector/deployment"
+
+        - name: Remove Mutating webhooks file
+          file:
+            state: absent
+            path: "{{ playbook_dir }}/files/manifests/sidecarInjector/deployment/mutatingwebhook.yaml"
 
         - name: Find all manifests in manifests/sidecarInjector directory
           find:
@@ -324,7 +326,7 @@
               - '.*.yaml$'
           register: sidecarManifests
 
-        - name: Load Injector manifests
+        - name: Remove Injector manifests
           k8s:
             state: absent
             src: "{{ sidecarInjectorLoad }}"
@@ -337,6 +339,16 @@
           loop: "{{ sidecarManifests.files | map(attribute='path') | list }}"
           loop_control:
             loop_var: sidecarInjectorLoad
+
+        - name: Remove Injector Namespace
+          k8s:
+            state: absent
+            namespace: injectors
+            wait: yes
+            wait_condition:
+              reason: completed
+              status: "True"
+            wait_timeout: 360
 
         - name: remove sidecar download
           file:
