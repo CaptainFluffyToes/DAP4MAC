@@ -109,3 +109,10 @@
     - gogs
   loop_control:
     loop_var: task_list
+
+- name: Configure sidecarInjector
+  include_tasks: "{{ task }}.yml"
+  with_items:
+    - sidecarInjector
+  loop_control:
+    loop_var: task
