@@ -14,4 +14,4 @@
 .DS_Store
 files/.DS_Store
 files/manifests/tools/metrics
-files/manifests//sidecarInjector
+files/manifests/sidecarInjector
