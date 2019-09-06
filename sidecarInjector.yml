@@ -9,7 +9,7 @@
 - name: Set variable value
   set_fact:
     sidecarinjector: "configured"
-  when: deployment_list.resources exists
+  when: deployment_list.changed == false
 
 - name: Configure DAP Mutating Webhook
   block:

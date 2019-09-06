@@ -43,20 +43,20 @@
         success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
  
   vars_prompt:
-  - name: "mode"
-    prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
-    default: "new"
-    private: no
+    - name: "mode"
+      prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
+      default: "new"
+      private: no
 
-  - name: "ingressEnable"
-    prompt: 'Should cluster ingress be enabled for all apps?'
-    default: "yes"
-    private: no
-  
-  - name: "clusterFQDN"
-    prompt: 'Enter k8s cluster FQDN'
-    default: "k8scluster.local"
-    private: no
+    - name: "ingressEnable"
+      prompt: 'Should cluster ingress be enabled for all apps?'
+      default: "yes"
+      private: no
+    
+    - name: "clusterFQDN"
+      prompt: 'Enter k8s cluster FQDN'
+      default: "k8scluster.local"
+      private: no
   
   tasks:
     - name: Check host entries for webpages
