@@ -6,6 +6,21 @@ metadata:
   namespace: demoapps
 
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gogsstorage
+  namespace: demoapps
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 8Gi
+  storageClassName: hostpath
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -49,6 +64,26 @@ spec:
             containerPort: 3000
           - name: ssh
             containerPort: 22
+        volumeMounts:
+          - mountPath: /data
+            name: storage
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: gogsstorage
+        
 
 ---
 apiVersion: v1
