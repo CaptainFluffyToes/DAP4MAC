@@ -83,7 +83,6 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: gogsstorage
-        
 
 ---
 apiVersion: v1
