@@ -84,7 +84,7 @@
       when: results.conjur_health == "OK"
   when: dapSourceConfig == "unconfigured"
 
-- name: Get Conjur Authentication token
+- name: Get DAP access token in the proper format.
   block:
     - name: Get API token
       uri:
