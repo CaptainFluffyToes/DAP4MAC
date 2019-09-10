@@ -98,6 +98,7 @@
             clone: yes
             repo: https://github.com/kubernetes-incubator/metrics-server.git
             dest: "{{ playbook_dir }}/files/manifests/tools/metrics"
+            force: yes
 
         - name: Find all manifests in metrics directory
           find:
