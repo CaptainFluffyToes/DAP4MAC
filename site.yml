@@ -22,6 +22,7 @@
       loop:
       - { url: 'https://hub.docker.com' }
       - { url: 'https://github.com' }
+      - { url: 'https://plugins.jenkins.io'}
 
     - name: install PIP modules
       pip:
@@ -388,3 +389,27 @@
     gogsAdminPass: "{{adminPass}}"
     gogsOrg: "{{ account }}"
     gogsApiAccessPass: "{{ gogsAdminPass }}"
+    jenkinsPlugins:
+      - cloudbees-folder
+      - antisamy-markup-formatter
+      - build-timeout
+      - credentials-binding
+      - timestamper
+      - ws-cleanup
+      - ant
+      - gradle
+      - workflow-aggregator
+      - github-organization-folder
+      - pipeline-stage-view
+      - build-pipeline-plugin
+      - conditional-buildstep
+      - jenkins-multijob-plugin
+      - git
+      - subversion
+      - tfs
+      - gitlab-plugin
+      - ssh-slaves
+      - matrix-auth
+      - pam-auth
+      - email-ext
+      - mailer
