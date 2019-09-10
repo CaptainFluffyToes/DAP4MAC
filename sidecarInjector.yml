@@ -1,15 +1,27 @@
 ---
-- name: Check if sidecar injector is configued
-  k8s_facts:
-    api_version: apps/v1
-    kind: Deployment
-    namespace: injectors
-  register: deployment_list
+- name: Find status of the sidecar injector deployment. Set status once found.
+  block:
+    - name: Check if sidecar injector is configued
+      k8s_facts:
+        kind: Pod
+        api_version: v1
+        namespace: injectors
+      register: pod_list
 
-- name: Set variable value
-  set_fact:
-    sidecarinjector: "configured"
-  when: deployment_list.changed == false
+    - name: set variable with name of pod
+      set_fact:
+        pod_name: "{{ item }}"
+      loop: "{{pod_list | json_query('resources[*].metadata.name')}}"
+
+    - name: Set sidecarinjector status to configured
+      set_fact:
+        sidecarinjector: "configured"
+      when: '"cyberark" in pod_name' 
+
+    - name: Set variable value to not configured if there aren't running pods
+      set_fact:
+        sidecarinjector: "notConfigured"
+      when: '"cyberark" not in pod_name' 
 
 - name: Configure DAP Mutating Webhook
   block:
@@ -18,6 +30,7 @@
         clone: yes
         repo: https://github.com/cyberark/sidecar-injector.git
         dest: "{{ playbook_dir }}/files/manifests/sidecarInjector"
+        force: yes
 
     - name: Create injectors namespace
       k8s:
@@ -40,6 +53,8 @@
     - name: Patch the MutatingWebhookConfiguration by setting caBundle with correct value from Kubernetes cluster
       shell: |
         cat mutatingwebhook.yaml | ./webhook-patch-ca-bundle.sh --namespace-selector-label cyberark-sidecar-injector --service cyberark-sidecar-injector --namespace injectors > mutatingwebhook-ca-bundle.yaml
+      args:
+        chdir: "{{ playbook_dir }}/files/manifests/sidecarInjector/deployment"
 
     - name: Remove Mutating webhooks file
       file:
@@ -73,4 +88,4 @@
     - name: Set demo stage status
       set_fact:
         demoStage: "mutatingWebHookLoaded"
-  when: sidecarinjector != "configured"
+  when: sidecarinjector == "notConfigured"
