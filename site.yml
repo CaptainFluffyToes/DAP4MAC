@@ -48,11 +48,6 @@
       prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
       default: "new"
       private: no
-
-    - name: "clusterFQDN"
-      prompt: 'Enter k8s cluster FQDN'
-      default: "k8scluster.local"
-      private: no
   
   tasks:
     - name: Check host entries for webpages
@@ -359,6 +354,8 @@
     dapAccessService: 'access.dap.svc.cluster.local'
     dapFollowerReplicaCount: 1
     dapMasterContainerName: 'node'
+    clusterFQDN: "k8scluster.local"
+    ingressEnable: 'yes'
     dapIngressRoute: "dap.{{clusterFQDN}}"
     jenkinsIngressRoute: "jenkins.{{clusterFQDN}}"
     dashboardIngressRoute: "dashboard.{{clusterFQDN}}"
