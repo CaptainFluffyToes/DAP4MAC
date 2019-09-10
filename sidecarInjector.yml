@@ -16,12 +16,12 @@
     - name: Set sidecarinjector status to configured
       set_fact:
         sidecarinjector: "configured"
-      when: '"cyberark" in pod_name' 
+      when: pod_name is defined 
 
     - name: Set variable value to not configured if there aren't running pods
       set_fact:
         sidecarinjector: "notConfigured"
-      when: '"cyberark" not in pod_name' 
+      when: pod_name is not defined 
 
 - name: Configure DAP Mutating Webhook
   block:
