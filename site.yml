@@ -49,11 +49,6 @@
       default: "new"
       private: no
 
-    - name: "ingressEnable"
-      prompt: 'Should cluster ingress be enabled for all apps?'
-      default: "yes"
-      private: no
-    
     - name: "clusterFQDN"
       prompt: 'Enter k8s cluster FQDN'
       default: "k8scluster.local"
@@ -240,18 +235,6 @@
             - "{{ ingressRoutes }}"
           become: yes
           when: hostsChecks.changed != true
-
-        - name: Create injectors namespace
-          k8s:
-            name: injectors
-            api_version: v1
-            kind: Namespace
-            state: absent
-            wait: yes
-            wait_condition:
-              reason: completed
-              status: "True"
-            wait_timeout: 360
         
         - name: Find all manifests in manifests/sidecarInjector directory
           find:
@@ -280,7 +263,9 @@
         - name: Remove Injector Namespace
           k8s:
             state: absent
-            namespace: injectors
+            api_version: v1
+            kind: Namespace
+            name: injectors
             wait: yes
             wait_condition:
               reason: completed
