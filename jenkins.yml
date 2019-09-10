@@ -48,7 +48,6 @@
     when: '"Allows credentials to be bound to environment variables for use from miscellaneous build steps." not in jenkinsPluginStatus.content'
 
   when: jenkinsStatus == "up"
-
  
 - name: Configure Jenkins
   block:
