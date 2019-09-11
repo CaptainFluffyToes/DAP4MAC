@@ -69,6 +69,8 @@ spec:
           - mountPath: /run/conjur
             name: conjur-access-token
             readOnly: true
+          - mountPath: /var/jenkins_home
+            name: storage
         readinessProbe:
           httpGet:
             path: /
@@ -81,9 +83,6 @@ spec:
             port: 8080
           initialDelaySeconds: 15
           periodSeconds: 20
-        volumeMounts:
-          - mountPath: /var/jenkins_home
-            name: storage
       - name: authenticator
         image: cyberark/conjur-authn-k8s-client
         imagePullPolicy: Always
