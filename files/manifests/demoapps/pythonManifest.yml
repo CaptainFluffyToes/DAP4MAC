@@ -1,0 +1,110 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: python-account
+  namespace: demoapps
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python
+  namespace: demoapps
+  labels:
+    app: python
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: demo
+      app: python
+  template:
+    metadata:
+      labels:
+        role: demo
+        app: python
+    spec:
+      serviceAccountName: python-account
+      shareProcessNamespace: true
+      containers:
+      - name: authenticator
+        image: cyberark/conjur-authn-k8s-client
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: CONJUR_AUTHN_LOGIN
+            value: host/conjur/authn-k8s/k8s-follower/apps/demoapps/deployment/python
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      - name: simpleapp
+        image: captainfluffytoes/python_app:latest
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CONJUR_APPLIANCE_URL
+            value: https://access.dap.svc.cluster.local/api
+          - name: CONJUR_AUTHN_URL
+            value: https://access.dap.svc.cluster.local/api/authn-k8s/k8s-follower
+          - name: CONJUR_ACCOUNT
+            value: cyberark
+          - name: CONJUR_VERSION
+            value: '5'
+          - name: SECRET
+            value: secrets/backend/postgres_pwd
+          - name: CONJUR_AUTHN_TOKEN_FILE
+            value: "/run/conjur/access-token"
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: k8s-app-ssl
+                key: ssl-certificate
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+        ports:
+          - containerPort: 5000
+            protocol: TCP
+      volumes:
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python
+  namespace: demoapps
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 5000
+  selector:
+    app: python
+  type: NodePort
