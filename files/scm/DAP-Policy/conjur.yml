@@ -43,6 +43,12 @@
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
 
+      - !host
+        id: demoapps/deployment/python
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+
     - !grant
       role: !layer
       members: *authenticated-resources-k8s
