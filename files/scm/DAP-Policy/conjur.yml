@@ -26,6 +26,12 @@
           kubernetes: "true"
 
       - !host
+        id: demoapps/deployment/python
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          kubernetes: "true"
+
+      - !host
         id: demoapps/deployment/secretless
         annotations:
           kubernetes/authentication-container-name: secretless-broker
@@ -87,6 +93,12 @@
 
       - !host
         id: demoapps/deployment/summon
+        annotations:
+          kubernetes/authentication-container-name: authenticator
+          openshift: "true"
+
+      - !host
+        id: demoapps/deployment/pyton
         annotations:
           kubernetes/authentication-container-name: authenticator
           openshift: "true"
