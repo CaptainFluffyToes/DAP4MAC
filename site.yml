@@ -1,5 +1,16 @@
 ---
 - hosts: demo_machine
+  vars_prompt:
+    - name: "mode"
+      prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
+      default: "new"
+      private: no
+
+    - name: "ingressMode"
+      prompt: 'Will this be configured on a single machine running a single node k8s cluster? Think docker 4 mac k8s cluster option. ("yes" or "no")'
+      default: "yes"
+      private: no
+
   pre_tasks:
     - name: Verify Ansible is greater than 2.8
       assert:
@@ -24,14 +35,6 @@
       - { url: 'https://github.com' }
       - { url: 'https://plugins.jenkins.io'}
 
-    - name: install PIP modules
-      pip:
-        name:
-          - pyYAML
-          - kubernetes
-          - openshift
-        extra_args: --user
-
     - name: Check if Kubectl is installed in current shell
       shell: |
         which kubectl
@@ -42,14 +45,30 @@
         that: "kubectl_is_installed.stdout != ''"
         fail_msg: "kubectl is not found in the current shell. Please install kubectl and connect it to your target cluster."
         success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
- 
-  vars_prompt:
-    - name: "mode"
-      prompt: 'Do you want to stand up a new environment or delete an existing environment? ("new" or "delete")'
-      default: "new"
-      private: no
+
+    - name: Check that kubectl is connected to a cluster
+      shell: |
+        kubectl get nodes
+      register: kubectl_is_configured
+      failed_when:
+        - kubectl_is_configured != 0
+        - '"docker-desktop   Ready" not in kubectl_is_configured.stdout'
   
   tasks:
+    - name: install PIP modules
+      pip:
+        name:
+          - pyYAML
+          - kubernetes
+          - openshift
+        extra_args: --user
+
+    - name: Fail is no cluster communication
+      assert:
+        that: "kubectl_is_configured.stdout != 'Unable to connect to the server'"
+        fail_msg: "kubectl has been found but it's not communicating to any cluster."
+        success_msg: "Cluster communication established!"
+
     - name: Check host entries for webpages
       lineinfile:
         path: /etc/hosts
@@ -61,6 +80,10 @@
        - "{{ ingressRoutes }}"
       loop_control:
         loop_var: hostsDNS
+      
+    - name: Set variable to know if hosts file entries exist
+      set_fact:
+        
 
     - name: Ask user for password to add hosts
       pause:
