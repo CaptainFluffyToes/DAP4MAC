@@ -6,11 +6,6 @@
       default: "new"
       private: no
 
-    - name: "ingressMode"
-      prompt: 'Will this be configured on a single machine running a single node k8s cluster? Think docker 4 mac k8s cluster option. ("yes" or "no")'
-      default: "yes"
-      private: no
-
   pre_tasks:
     - name: Verify Ansible is greater than 2.8
       assert:
@@ -72,43 +67,7 @@
           - kubernetes
           - openshift
         extra_args: --user
-
-    - name: Check host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ hostsDNS }}
-        state: present
-      check_mode: yes
-      register: hostsChecks
-      with_items:
-       - "{{ ingressRoutes }}"
-      loop_control:
-        loop_var: hostsDNS
-      
-    - name: Ask user for password to add hosts
-      pause:
-        prompt: "Enter SUDO password"
-        echo: no
-      register: sudo
-      when: hostsChecks.changed == true and ansible_become_pass is undefined and mode == 'new'
-      no_log: yes
-
-    - name: Set ansible become password
-      set_fact:
-        ansible_become_pass: "{{ sudo.user_input }}"
-      no_log: yes
-      when: hostsChecks.changed == true and mode == 'new'
-
-    - name: Add host entries for webpages
-      lineinfile:
-        path: /etc/hosts
-        line: 127.0.0.1 {{ item }}
-        state: present
-      with_items:
-       - "{{ ingressRoutes }}"
-      when: mode == 'new' and hostsChecks.changed == true
-      become: yes
-    
+        
     - name: Load cluster tools and set demostage status
       block:
         - name: Pull down metrics server from github
@@ -174,34 +133,22 @@
             demoStage: "toolsLoaded"
       when: mode == 'new'
 
-    - name: enable ingress and load tool ingresses
-      block:
-        - name: Find all manifests in manifests/ingress directory
-          find:
-            paths: "{{ playbook_dir }}/files/manifests/ingress/"
-            file_type: file
-            use_regex: yes
-            patterns:
-              - '.*.yml$'
-              - '.*.yaml$'
-          register: ingressManifests
-
-        - name: Load Cluster tools ingress manifests
-          k8s:
-            state: present
-            src: "{{ ingressLoad }}"
-            wait: yes
-            wait_condition:
-              reason: completed
-              status: "True"
-            wait_timeout: 360
-          loop: "{{ ingressManifests.files | map(attribute='path') | list }}"
-          loop_control:
-            loop_var: ingressLoad
-      when: ingressEnable == "yes" and mode == "new"
+    - name: Set up ingress if running on local docker for mac instance of k8s
+      include_tasks: localIngress.yml
+      when: docker_desktop == "configured" and mode == "new"
 
     - name: Configure DAP source and access. Set demo status
       block:
+        - name: Set DAP ingress route when using local docker-desktop
+          set_fact:
+            dapIngressRoute: "dap.{{ clusterFQDN }}"
+          when: docker_desktop == "configured"
+
+        - name: Set DAP ingress to node and port when using a cluster
+          set_fact: 
+            dapIngressRoute: "{{ ansible_default_ipv4.address }}.{{ dapPort }}"
+          when: docker_desktop != "configured"
+
         - name: Configure DAP
           include_tasks: "{{ dapStage }}.yml"
           loop:
@@ -380,6 +327,7 @@
     clusterFQDN: "k8scluster.local"
     ingressEnable: 'yes'
     dapIngressRoute: "dap.{{clusterFQDN}}"
+    dapPort: 30443
     jenkinsIngressRoute: "jenkins.{{clusterFQDN}}"
     dashboardIngressRoute: "dashboard.{{clusterFQDN}}"
     weaveIngressRoute: "weave.{{clusterFQDN}}"
