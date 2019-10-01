@@ -1,0 +1,61 @@
+---
+- name: Check host entries for webpages
+  lineinfile:
+    path: /etc/hosts
+    line: 127.0.0.1 {{ hostsDNS }}
+    state: present
+  check_mode: yes
+  register: hostsChecks
+  with_items:
+    - "{{ ingressRoutes }}"
+  loop_control:
+    loop_var: hostsDNS
+  
+- name: Ask user for password to add hosts
+  pause:
+    prompt: "Enter SUDO password"
+    echo: no
+  register: sudo
+  when: hostsChecks.changed == true and ansible_become_pass is undefined
+  no_log: yes
+
+- name: Set ansible become password
+  set_fact:
+    ansible_become_pass: "{{ sudo.user_input }}"
+  no_log: yes
+  when: hostsChecks.changed == true
+
+- name: Add host entries for webpages
+  lineinfile:
+    path: /etc/hosts
+    line: 127.0.0.1 {{ item }}
+    state: present
+  with_items:
+    - "{{ ingressRoutes }}"
+  when: hostsChecks.changed == true
+  become: yes
+
+- name: enable ingress and load tool ingresses
+  block:
+    - name: Find all manifests in manifests/ingress directory
+      find:
+        paths: "{{ playbook_dir }}/files/manifests/ingress/"
+        file_type: file
+        use_regex: yes
+        patterns:
+          - '.*.yml$'
+          - '.*.yaml$'
+      register: ingressManifests
+
+- name: Load Cluster tools ingress manifests
+  k8s:
+    state: present
+    src: "{{ ingressLoad }}"
+    wait: yes
+    wait_condition:
+      reason: completed
+      status: "True"
+    wait_timeout: 360
+  loop: "{{ ingressManifests.files | map(attribute='path') | list }}"
+  loop_control:
+    loop_var: ingressLoad
