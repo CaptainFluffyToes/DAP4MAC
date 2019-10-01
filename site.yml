@@ -36,9 +36,10 @@
       - { url: 'https://plugins.jenkins.io'}
 
     - name: Check if Kubectl is installed in current shell
-      shell: |
+      command: |
         which kubectl
       register: kubectl_is_installed
+      ignore_errors: yes
       
     - name: Fail if kubectl not installed
       assert:
@@ -46,11 +47,17 @@
         fail_msg: "kubectl is not found in the current shell. Please install kubectl and connect it to your target cluster."
         success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
 
-    - name: Check that kubectl is connected to a docker-desktop cluster.
-      shell: |
+    - name: Check that kubectl is connected to a cluster.
+      command: |
         kubectl get nodes
       register: kubectl_is_configured
-      failed_when: kubectl_is_configured.rc != 0 or "docker-desktop" not in kubectl_is_configured.stdout 
+      ignore_errors: yes
+
+    - name: Fail if kubectl not connected to a cluster
+      assert:
+        that: "kubectl_is_configured.rc == 0"
+        fail_msg: "kubectl is not configured with a cluster connection. Please connect to a cluster and re-run."
+        success_msg: "kubectl is configured with a cluster connection."
 
     - name: Set fact that we are dealing with a docker-desktop k8s implementation
       set_fact:
