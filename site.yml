@@ -46,13 +46,16 @@
         fail_msg: "kubectl is not found in the current shell. Please install kubectl and connect it to your target cluster."
         success_msg: "kubectl found. Located at {{ kubectl_is_installed.stdout }}"
 
-    - name: Check that kubectl is connected to a cluster
+    - name: Check that kubectl is connected to a docker-desktop cluster.
       shell: |
         kubectl get nodes
       register: kubectl_is_configured
-      failed_when:
-        - kubectl_is_configured != 0
-        - '"docker-desktop   Ready" not in kubectl_is_configured.stdout'
+      failed_when: kubectl_is_configured.rc != 0 or "docker-desktop" not in kubectl_is_configured.stdout 
+
+    - name: Set fact that we are dealing with a docker-desktop k8s implementation
+      set_fact:
+        docker_desktop: "configured"
+      when: '"docker-desktop" in kubectl_is_configured.stdout' 
   
   tasks:
     - name: install PIP modules
@@ -62,12 +65,6 @@
           - kubernetes
           - openshift
         extra_args: --user
-
-    - name: Fail is no cluster communication
-      assert:
-        that: "kubectl_is_configured.stdout != 'Unable to connect to the server'"
-        fail_msg: "kubectl has been found but it's not communicating to any cluster."
-        success_msg: "Cluster communication established!"
 
     - name: Check host entries for webpages
       lineinfile:
@@ -81,10 +78,6 @@
       loop_control:
         loop_var: hostsDNS
       
-    - name: Set variable to know if hosts file entries exist
-      set_fact:
-        
-
     - name: Ask user for password to add hosts
       pause:
         prompt: "Enter SUDO password"
