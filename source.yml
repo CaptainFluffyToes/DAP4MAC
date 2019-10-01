@@ -63,8 +63,8 @@
 - name: Perform configuration tasks
   block:
     - name: Configure DAP 
-      shell: |
-        kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
+      command: |
+        kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master --accept-eula -h {{ dapSourceService }} -p {{ dapAdminPass }} --master-altnames "{{ ansible_default_ipv4.address }}" {{ dapAccount }}
 
     - name: Wait for health page to report OK
       uri:
@@ -131,9 +131,20 @@
       loop_control:
         loop_var: policy_item
 
-    # - name: Create password for variable  
-    #   set_fact:
-    #     dap_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+    - name: Create password for variable  
+      set_fact:
+        nginx_pass: "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+    - name: Load Secret secrets/frontend/nginx_pwd
+      uri:
+        url: https://{{dapIngressRoute}}/secrets/{{ dapAccount }}/variable/secrets/frontend/nginx_pwd
+        status_code: 201
+        return_content: yes
+        method: POST
+        headers:
+          Authorization: Token token="{{ dapTokenFormatted }}"
+        validate_certs: no
+        body: "{{ nginx_pass }}"
 
     - name: Load Secret secrets/backend/postgres_pwd
       uri:
@@ -145,10 +156,6 @@
           Authorization: Token token="{{ dapTokenFormatted }}"
         validate_certs: no
         body: "Cyberark1"
-      # with_items:
-      #   - "{{ dap_pass }}"
-      # loop_control:
-      #   loop_var: secret_item
     
     - name: Load Secret secrets/backend/postgres_user
       uri:
@@ -188,7 +195,7 @@
         loop_var: authnk8s_name
 
     - name: Initialize certificates for authn-k8s
-      shell: |
+      command: |
         kubectl -n dap exec {{ sourcePodName }} -i -- chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/{{cert_item}}"]
       with_items:
         - okd-follower
