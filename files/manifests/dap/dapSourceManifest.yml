@@ -47,6 +47,7 @@ metadata:
 spec:
   ports:
   - name: https
+    nodePort: 30443
     port: 443
     targetPort: 443
   - name: postgres
@@ -54,7 +55,7 @@ spec:
     targetPort: 5432
   selector:
     role: source
-  type: ClusterIP
+  type: NodePort
 
 ---
 apiVersion: extensions/v1beta1
