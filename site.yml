@@ -44,7 +44,7 @@
 
     - name: Check that kubectl is connected to a cluster.
       command: |
-        kubectl get nodes
+        kubectl get nodes -o wide
       register: kubectl_is_configured
       ignore_errors: yes
 
@@ -58,6 +58,12 @@
       set_fact:
         docker_desktop: "configured"
       when: '"docker-desktop" in kubectl_is_configured.stdout' 
+
+    - name: Find IP address of k8s node if not using docker-desktop
+      command: |
+        kubectl get nodes -l node-role.kubernetes.io/worker!=true,node-role.kubernetes.io/controlplane!=true -o wide | awk 'NR==2 {print $6}'
+      register: worker_node_Address      
+      when: docker-desktop != "configured"
   
   tasks:
     - name: install PIP modules
