@@ -157,7 +157,7 @@
 
         - name: Set DAP ingress to node and port when using a cluster
           set_fact: 
-            dapIngressRoute: "{{ ansible_default_ipv4.address }}:{{ dapPort }}"
+            dapIngressRoute: "{{ workerNodeAddress }}:{{ dapPort }}"
           when: docker_desktop != "configured"
 
         - name: Configure DAP
