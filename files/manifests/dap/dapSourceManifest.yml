@@ -19,7 +19,7 @@ spec:
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
-        image: captainfluffytoes/dap:10.10
+        image: captainfluffytoes/dap:11.1
         env:
           - name: CONJUR_AUTHENTICATORS
             value: "authn-k8s/okd-follower,authn-k8s/k8s-follower"
