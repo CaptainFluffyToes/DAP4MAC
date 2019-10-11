@@ -64,7 +64,7 @@
   block:
     - name: Configure DAP 
       command: |
-        kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master --accept-eula -h {{ dapSourceService }} -p {{ dapAdminPass }} --master-altnames "{{ ansible_default_ipv4.address }}" {{ dapAccount }}
+        kubectl exec -n dap {{ sourcePodName }} -i -- evoke configure master --accept-eula -h {{ dapSourceService }} -p {{ dapAdminPass }} {{ dapAccount }}
 
     - name: Wait for health page to report OK
       uri:
