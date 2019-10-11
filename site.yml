@@ -57,13 +57,18 @@
     - name: Set fact that we are dealing with a docker-desktop k8s implementation
       set_fact:
         docker_desktop: "configured"
-      when: '"docker-desktop" in kubectl_is_configured.stdout' 
+      when: kubectl_is_configured.stdout is search("docker-desktop")
 
-    - name: Find IP address of k8s node if not using docker-desktop
-      command: |
-        kubectl get nodes -l node-role.kubernetes.io/worker!=true,node-role.kubernetes.io/controlplane!=true -o wide | awk 'NR==2 {print $6}'
-      register: worker_node_Address      
-      when: docker-desktop != "configured"
+    - name: Configure k8s worker node Ip address
+      block:
+        - name: Find IP address of k8s node if not using docker-desktop
+          command: |
+            kubectl get nodes -l node-role.kubernetes.io/worker!=true,node-role.kubernetes.io/controlplane!=true -o wide | awk 'NR==2 {print $6}'
+          register: workerNodeAddressResult
+        - name: Set ip address of worker node
+          set_fact:
+            workerNodeAddress: "{{ workerNodeAddressResult.stdout }}"
+      when: docker_desktop is undefined
   
   tasks:
     - name: install PIP modules
