@@ -131,3 +131,7 @@
 - !grant
   role: !layer seed-generation/consumers
   member: !host /conjur/authn-k8s/k8s-follower/apps/dap/service_account/conjur-cluster
+
+- !grant
+  role: !layer seed-generation/consumers
+  member: !host /conjur/authn-k8s/okd-follower/apps/dap/service_account/conjur-cluster
