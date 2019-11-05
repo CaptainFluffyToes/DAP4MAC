@@ -81,40 +81,6 @@
         
     - name: Load cluster tools and set demostage status
       block:
-        - name: Pull down metrics server from github
-          git:
-            clone: yes
-            repo: https://github.com/kubernetes-incubator/metrics-server.git
-            dest: "{{ playbook_dir }}/files/manifests/tools/metrics"
-            force: yes
-
-        - name: Find all manifests in metrics directory
-          find:
-            paths: "{{ playbook_dir }}/files/manifests/tools/metrics/deploy/1.8+/"
-            file_type: file
-            use_regex: yes
-            patterns:
-              - '.*.yml$'
-              - '.*.yaml$'
-          register: metrics
-
-        - name: Get list paths for all metrics manifests
-          set_fact:
-            metricsManifests: "{{ metrics.files | map(attribute='path') | list }}"
-        
-        - name: Load metrics server
-          k8s:
-            state: present
-            src: "{{ manifestLoad }}"
-            wait: yes
-            wait_condition:
-              reason: completed
-              status: "True"
-            wait_timeout: 360
-          loop: "{{ metricsManifests }}"
-          loop_control:
-            loop_var: manifestLoad
-
         - name: Find all manifests in manifests/tools directory
           find:
             paths: "{{ playbook_dir }}/files/manifests/tools/"
