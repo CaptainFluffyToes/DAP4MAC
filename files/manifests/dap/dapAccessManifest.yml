@@ -167,4 +167,4 @@ spec:
     name: dap-access-node
   minReplicas: 1
   maxReplicas: 10
-  targetCPUUtilizationPercentage: 50
+  targetCPUUtilizationPercentage: 10
