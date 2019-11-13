@@ -102,14 +102,6 @@
       
   when: sslConfigMap == "configured"
 
-- name: Configure demo tools
-  include_tasks: "{{ task_list }}.yml"
-  with_items:
-    - jenkins
-    - gogs
-  loop_control:
-    loop_var: task_list
-
 - name: Configure sidecarInjector
   include_tasks: "{{ task }}.yml"
   with_items:
