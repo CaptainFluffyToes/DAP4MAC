@@ -49,6 +49,12 @@
           kubernetes/authentication-container-name: authenticator
           kubernetes: "true"
 
+      - !host
+        id: demoapps/deployment/k8ssecretdap
+        annotations:
+          kubernetes/authentication-container-name: cyberark-secrets-provider
+          kubernetes: "true"
+
     - !grant
       role: !layer
       members: *authenticated-resources-k8s
@@ -113,7 +119,7 @@
         id: demoapps/deployment/k8ssecretdap
         annotations:
           kubernetes/authentication-container-name: cyberark-secrets-provider
-          kubernetes: "true"
+          openshift: "true"
 
     - !grant
       role: !layer
