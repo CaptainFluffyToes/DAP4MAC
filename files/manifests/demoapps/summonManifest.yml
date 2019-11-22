@@ -6,6 +6,16 @@ metadata:
   namespace: demoapps
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: summonconfig
+  namespace: demoapps
+data:
+  secrets.yml: |
+    SECRET: !var secrets/backend/postgres_pwd
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -87,7 +97,13 @@ spec:
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token
+          - mountPath: /etc/summon/
+            name: secrets
       volumes:
         - name: conjur-access-token
           emptyDir:
             medium: Memory
+        - name: secrets
+          configMap:
+            name: summonconfig
+            defaultMode: 420

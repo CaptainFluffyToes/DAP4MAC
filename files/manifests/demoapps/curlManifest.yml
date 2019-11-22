@@ -75,7 +75,7 @@ spec:
           - name: CONJUR_VERSION
             value: '5'
           - name: SECRET
-            value: secrets/backend/postgres_pwd
+            value: secrets/frontend/nginx_pwd
           - name: CONJUR_SSL_CERTIFICATE
             valueFrom:
               configMapKeyRef:
