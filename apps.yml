@@ -10,13 +10,6 @@
       reason: completed
       status: "True"
 
-- name: create secretless cert config map
-  shell: |
-    kubectl -n {{ item }} create configmap secretless-config --from-file={{ playbook_dir }}/files/secretless/secretless.yml
-  with_items:
-    - demoapps
-  ignore_errors: yes
-
 - name: Check to see if config map already exists
   k8s_facts:
     kind: ConfigMap
