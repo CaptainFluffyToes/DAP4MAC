@@ -292,7 +292,7 @@
       when: mode == "delete"
 
   vars:
-    adminPass: 'Cyberark1'
+    adminPass: 'CYberark11@@'
     account: 'cyberark'
     dapAdmin: 'admin'
     dapAdminPass: "{{adminPass}}"
