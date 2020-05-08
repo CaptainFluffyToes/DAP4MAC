@@ -106,7 +106,7 @@ spec:
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
-        image: captainfluffytoes/dap:11.1
+        image: captainfluffytoes/dap:11.4.0
         command: ["/tmp/seedfile/start-follower.sh"]
         env:
           - name: CONJUR_AUTHENTICATORS
